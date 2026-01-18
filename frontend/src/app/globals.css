@@ -1,0 +1,275 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+/* ================================
+   DEGREE PLANNER CUSTOM THEME
+   Premium Dark Mode SaaS Design
+================================ */
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+  
+  /* Custom Colors */
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-border: var(--border);
+  --color-ring: var(--ring);
+  
+  /* Chart Colors */
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  
+  /* Radiuses */
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+}
+
+:root {
+  --radius: 0.75rem;
+  
+  /* Teal/Cyan Accent Colors */
+  --teal-400: #2dd4bf;
+  --teal-500: #14b8a6;
+  --teal-600: #0d9488;
+  --cyan-400: #22d3ee;
+  --cyan-500: #06b6d4;
+}
+
+/* Dark Theme (Default) */
+.dark, :root {
+  --background: #0a0a0f;
+  --foreground: #f5f5f5;
+  
+  --card: rgba(20, 24, 33, 0.8);
+  --card-foreground: #f5f5f5;
+  
+  --popover: #1a1f2e;
+  --popover-foreground: #f5f5f5;
+  
+  --primary: #14b8a6;
+  --primary-foreground: #0a0a0f;
+  
+  --secondary: #1e2330;
+  --secondary-foreground: #f5f5f5;
+  
+  --muted: #1a1f2e;
+  --muted-foreground: #8892b0;
+  
+  --accent: #0d9488;
+  --accent-foreground: #f5f5f5;
+  
+  --destructive: #ef4444;
+  
+  --border: rgba(255, 255, 255, 0.08);
+  --input: rgba(255, 255, 255, 0.1);
+  --ring: #14b8a6;
+  
+  /* Chart Colors */
+  --chart-1: #14b8a6;
+  --chart-2: #22d3ee;
+  --chart-3: #8b5cf6;
+  --chart-4: #f59e0b;
+  --chart-5: #ef4444;
+}
+
+/* ================================
+   ANIMATED GRADIENT BACKGROUND
+================================ */
+@keyframes gradientShift {
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
+}
+
+.animated-gradient-bg {
+  background: linear-gradient(
+    -45deg,
+    #0f0c29,
+    #1a1a2e,
+    #0d1520,
+    #1a0a20,
+    #0a1520
+  );
+  background-size: 400% 400%;
+  animation: gradientShift 20s ease infinite;
+}
+
+/* ================================
+   GLASSMORPHISM CARDS
+================================ */
+.glass-card {
+  background: rgba(20, 24, 33, 0.6);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 20px;
+  box-shadow: 
+    0 8px 32px rgba(0, 0, 0, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+.glass-card-hover {
+  transition: all 0.3s ease;
+}
+
+.glass-card-hover:hover {
+  transform: translateY(-4px);
+  box-shadow: 
+    0 12px 40px rgba(20, 184, 166, 0.15),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+  border-color: rgba(20, 184, 166, 0.3);
+}
+
+/* ================================
+   METRIC CARDS
+================================ */
+.metric-card {
+  background: linear-gradient(
+    135deg,
+    rgba(20, 184, 166, 0.08) 0%,
+    rgba(34, 211, 238, 0.04) 100%
+  );
+  border: 1px solid rgba(20, 184, 166, 0.15);
+  position: relative;
+  overflow: hidden;
+}
+
+.metric-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, #14b8a6, #22d3ee);
+}
+
+/* ================================
+   DIFFICULTY BADGES
+================================ */
+.difficulty-light {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  color: white;
+}
+
+.difficulty-moderate {
+  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+  color: white;
+}
+
+.difficulty-heavy {
+  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+  color: white;
+}
+
+/* ================================
+   GLOW EFFECTS
+================================ */
+.glow-teal {
+  box-shadow: 0 0 20px rgba(20, 184, 166, 0.3);
+}
+
+.text-glow {
+  text-shadow: 0 0 20px rgba(20, 184, 166, 0.5);
+}
+
+/* ================================
+   CUSTOM SCROLLBAR
+================================ */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(20, 184, 166, 0.3);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(20, 184, 166, 0.5);
+}
+
+/* ================================
+   BASE STYLES
+================================ */
+@layer base {
+  * {
+    @apply border-border;
+  }
+  
+  body {
+    @apply bg-background text-foreground;
+  }
+  
+  html {
+    scroll-behavior: smooth;
+  }
+}
+
+/* ================================
+   REACT FLOW OVERRIDES
+================================ */
+.react-flow__node {
+  cursor: pointer;
+}
+
+.react-flow__node:hover {
+  z-index: 10;
+}
+
+.react-flow__edge-path {
+  stroke-width: 2;
+}
+
+.react-flow__background {
+  background: transparent !important;
+}
+
+/* ================================
+   ANIMATIONS
+================================ */
+@keyframes pulse-ring {
+  0% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1.5);
+    opacity: 0;
+  }
+}
+
+.animate-pulse-ring {
+  animation: pulse-ring 2s ease-out infinite;
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-10px); }
+}
+
+.animate-float {
+  animation: float 3s ease-in-out infinite;
+}
