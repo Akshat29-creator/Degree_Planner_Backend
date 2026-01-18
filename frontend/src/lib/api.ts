@@ -749,4 +749,91 @@ export const deletePlan = async (id: number): Promise<void> => {
 };
 
 
+// ================================
+// PRACTICE & SELF-TEST ENGINE
+// ================================
+
+export interface PracticeQuestion {
+    question_id: string;
+    text: string;
+    question_type: "mcq" | "short" | "long";
+    options?: string[];
+    correct_answer?: string;  // Hidden in self-test mode
+    explanation?: string;     // Hidden in self-test mode
+}
+
+export interface GenerateQuestionsRequest {
+    topic_name: string;
+    topic_notes: string;
+    difficulty: "Easy" | "Medium" | "Hard";
+    question_type: "mcq" | "short" | "long";
+    count: number;
+    mode: "practice" | "self-test";
+}
+
+export interface GenerateQuestionsResponse {
+    session_id: string;
+    topic_name: string;
+    question_type: string;
+    questions: PracticeQuestion[];
+}
+
+export interface UserAnswer {
+    question_id: string;
+    user_answer: string;
+}
+
+export interface EvaluateRequest {
+    session_id: string;
+    topic_name: string;
+    question_type: string;
+    answers: UserAnswer[];
+}
+
+export interface QuestionFeedback {
+    question_id: string;
+    question_text: string;
+    user_answer: string;
+    correct_answer: string;
+    is_correct: boolean;
+    score: number;
+    max_score: number;
+    feedback: string;
+}
+
+export interface EvaluateResponse {
+    total_score: number;
+    max_score: number;
+    percentage: number;
+    performance_level: "Weak" | "Average" | "Strong";
+    question_feedback: QuestionFeedback[];
+    next_steps: string[];
+}
+
+/**
+ * Generate practice or self-test questions for a topic.
+ */
+export const generatePracticeQuestions = async (
+    request: GenerateQuestionsRequest
+): Promise<GenerateQuestionsResponse> => {
+    return fetchAPI("/api/practice/generate", {
+        method: "POST",
+        body: JSON.stringify(request),
+    });
+};
+
+/**
+ * Evaluate user answers and get scores with feedback.
+ */
+export const evaluateAnswers = async (
+    request: EvaluateRequest
+): Promise<EvaluateResponse> => {
+    return fetchAPI("/api/practice/evaluate", {
+        method: "POST",
+        body: JSON.stringify(request),
+    });
+};
+
+
 // End of file
+

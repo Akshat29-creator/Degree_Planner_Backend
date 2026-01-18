@@ -6,6 +6,7 @@ from app.routers.auth import router as auth_router
 from app.routers.revision import router as revision_router
 from app.routers.history import router as history_router
 from app.routers.manual_entry import router as manual_entry_router
+from app.routers.practice import router as practice_router
 
 __all__ = [
     "courses_router", 
@@ -14,5 +15,7 @@ __all__ = [
     "auth_router", 
     "revision_router",
     "history_router",
-    "manual_entry_router"
+    "manual_entry_router",
+    "practice_router"
 ]
+

@@ -23,8 +23,10 @@ import {
     BookOpen,
     ChevronRight,
     Info,
+    ClipboardCheck,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import PracticePanel from "@/components/revision/PracticePanel";
 
 export default function RevisionEnginePage() {
     // Manual Revision State
@@ -52,6 +54,11 @@ export default function RevisionEnginePage() {
 
     // Active Tab
     const [activeTab, setActiveTab] = useState<"manual" | "document">("document");
+
+    // Practice Panel State
+    const [practiceTopicName, setPracticeTopicName] = useState<string | null>(null);
+    const [practiceTopicNotes, setPracticeTopicNotes] = useState<string>("");
+    const [practiceTopicDifficulty, setPracticeTopicDifficulty] = useState<"Easy" | "Medium" | "Hard">("Medium");
 
     const handleAddTopic = () => {
         if (newTopic.trim()) {
@@ -288,11 +295,10 @@ export default function RevisionEnginePage() {
                                         <h4 className="text-sm font-medium text-zinc-400 mb-3">Topics to Revise</h4>
                                         <div className="space-y-2">
                                             {documentAnalysis.topics.map((topic, idx) => (
-                                                <button
+                                                <div
                                                     key={idx}
-                                                    onClick={() => handleExplainTopic(topic.name)}
                                                     className={cn(
-                                                        "w-full flex items-center gap-3 p-3 rounded-lg border transition-all text-left",
+                                                        "w-full flex items-center gap-3 p-3 rounded-lg border transition-all",
                                                         selectedTopic === topic.name
                                                             ? "bg-purple-500/20 border-purple-500/50"
                                                             : "bg-white/5 border-white/10 hover:bg-white/10"
@@ -308,9 +314,24 @@ export default function RevisionEnginePage() {
                                                     >
                                                         {topic.difficulty}
                                                     </Badge>
-                                                    <span className="flex-1 text-white">{topic.name}</span>
-                                                    <ChevronRight className="h-4 w-4 text-zinc-500" />
-                                                </button>
+                                                    <button
+                                                        onClick={() => handleExplainTopic(topic.name)}
+                                                        className="flex-1 text-white text-left hover:text-purple-300 transition-colors"
+                                                    >
+                                                        {topic.name}
+                                                    </button>
+                                                    <button
+                                                        onClick={() => {
+                                                            setPracticeTopicName(topic.name);
+                                                            setPracticeTopicNotes(documentAnalysis.revision_plan + "\n\nKey Concepts: " + documentAnalysis.key_concepts.join(", "));
+                                                            setPracticeTopicDifficulty(topic.difficulty as "Easy" | "Medium" | "Hard");
+                                                        }}
+                                                        className="px-3 py-1.5 rounded-lg bg-gradient-to-r from-purple-600 to-pink-600 text-white text-xs font-medium hover:from-purple-500 hover:to-pink-500 transition-all flex items-center gap-1"
+                                                    >
+                                                        <ClipboardCheck className="h-3 w-3" />
+                                                        Practice
+                                                    </button>
+                                                </div>
                                             ))}
                                         </div>
                                     </div>
@@ -608,6 +629,19 @@ export default function RevisionEnginePage() {
                     </div>
                 </div>
             )}
+
+            {/* Practice Panel Modal */}
+            <AnimatePresence>
+                {practiceTopicName && (
+                    <PracticePanel
+                        topicName={practiceTopicName}
+                        topicNotes={practiceTopicNotes}
+                        difficulty={practiceTopicDifficulty}
+                        onClose={() => setPracticeTopicName(null)}
+                    />
+                )}
+            </AnimatePresence>
         </div>
     );
 }
+

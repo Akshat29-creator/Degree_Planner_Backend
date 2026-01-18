@@ -1593,6 +1593,239 @@ Respond with ONLY valid JSON (no markdown):
             "revision_tip": "Review your notes and textbook."
         }
 
+    # ============================================
+    # PRACTICE & SELF-TEST ENGINE METHODS
+    # ============================================
+
+    async def generate_practice_questions(
+        self,
+        topic: str,
+        notes: str,
+        difficulty: str,
+        q_type: str,
+        count: int
+    ) -> List[Dict]:
+        """
+        Generate practice/self-test questions based on topic notes.
+        
+        Args:
+            topic: Topic name
+            notes: Study material content
+            difficulty: Easy / Medium / Hard
+            q_type: mcq / short / long
+            count: Number of questions to generate
+        
+        Returns:
+            List of question dicts with text, options (if MCQ), correct_answer, explanation
+        """
+        # Build format instructions based on question type
+        if q_type == "mcq":
+            format_instructions = """Each question must have:
+- "text": The question text
+- "options": Array of exactly 4 options ["A. ...", "B. ...", "C. ...", "D. ..."]
+- "correct_answer": The correct option letter (A, B, C, or D)
+- "explanation": Brief explanation why this is correct"""
+        elif q_type == "short":
+            format_instructions = """Each question must have:
+- "text": The question text (expecting 1-2 sentence answers)
+- "correct_answer": The expected answer (1-2 sentences)
+- "explanation": What makes a good answer"""
+        else:  # long
+            format_instructions = """Each question must have:
+- "text": The question text (expecting detailed multi-paragraph answers)
+- "correct_answer": Key points that should be covered
+- "explanation": Comprehensive model answer"""
+
+        prompt = f"""You are an exam question generator. Generate {count} {difficulty.upper()} level {q_type.upper()} questions.
+
+TOPIC: {topic}
+DIFFICULTY: {difficulty}
+
+STUDY MATERIAL (use ONLY this content):
+{notes[:4000]}
+
+RULES:
+1. Questions MUST be based ONLY on the provided study material
+2. Do NOT invent facts not present in the notes
+3. Difficulty should match: Easy=recall, Medium=application, Hard=analysis
+4. {format_instructions}
+
+Respond with ONLY valid JSON array (no markdown, no explanation outside JSON):
+[
+  {{"text": "...", "options": [...], "correct_answer": "...", "explanation": "..."}},
+  ...
+]
+"""
+
+        print(f"[DEBUG] Generating {count} {q_type} questions for topic: {topic}")
+        
+        result = await self._call_ollama(prompt)
+        
+        if result:
+            # Try to parse as array
+            try:
+                # Direct parse
+                parsed = json.loads(result.strip())
+                if isinstance(parsed, list) and len(parsed) > 0:
+                    print(f"[DEBUG] Generated {len(parsed)} questions")
+                    return parsed
+            except json.JSONDecodeError:
+                pass
+            
+            # Try to find array in response
+            try:
+                arr_start = result.find('[')
+                arr_end = result.rfind(']') + 1
+                if arr_start >= 0 and arr_end > arr_start:
+                    parsed = json.loads(result[arr_start:arr_end])
+                    if isinstance(parsed, list):
+                        print(f"[DEBUG] Extracted {len(parsed)} questions from response")
+                        return parsed
+            except json.JSONDecodeError:
+                pass
+        
+        # Fallback: Generate placeholder questions
+        print("[DEBUG] Question generation fallback - creating placeholder questions")
+        fallback_questions = []
+        for i in range(count):
+            if q_type == "mcq":
+                fallback_questions.append({
+                    "text": f"Sample question {i+1} about {topic}?",
+                    "options": ["A. Option 1", "B. Option 2", "C. Option 3", "D. Option 4"],
+                    "correct_answer": "A",
+                    "explanation": "AI generation unavailable. Please retry."
+                })
+            else:
+                fallback_questions.append({
+                    "text": f"Explain concept {i+1} from {topic}.",
+                    "correct_answer": "Unable to generate answer. AI may be unavailable.",
+                    "explanation": "Please ensure Ollama is running."
+                })
+        return fallback_questions
+
+    async def evaluate_answers(
+        self,
+        topic: str,
+        question_type: str,
+        answers_data: List[Dict]
+    ) -> Dict:
+        """
+        Evaluate user-submitted answers using AI.
+        
+        Args:
+            topic: Topic name for context
+            question_type: mcq / short / long (affects scoring)
+            answers_data: List of {question_id, user_answer, correct_answer}
+        
+        Returns:
+            Dict with total_score, percentage, performance_level, question_feedback, next_steps
+        """
+        # Determine max score per question
+        if question_type == "mcq":
+            max_per_q = 1
+        elif question_type == "short":
+            max_per_q = 2
+        else:  # long
+            max_per_q = 5
+
+        # Build evaluation prompt
+        questions_text = ""
+        for idx, ans in enumerate(answers_data):
+            questions_text += f"""
+Question {idx + 1}:
+- User Answer: {ans.get('user_answer', 'No answer')}
+- Correct Answer: {ans.get('correct_answer', 'N/A')}
+"""
+
+        prompt = f"""You are an exam evaluator. Evaluate the following answers.
+
+TOPIC: {topic}
+QUESTION TYPE: {question_type.upper()}
+MAX SCORE PER QUESTION: {max_per_q}
+
+ANSWERS TO EVALUATE:
+{questions_text}
+
+SCORING RULES:
+- MCQ: 1 if correct, 0 if wrong
+- Short Answer: 0 (wrong), 1 (partial), 2 (correct)
+- Long Answer: 0-5 based on completeness
+
+For each question, provide:
+1. Score (0 to {max_per_q})
+2. Whether correct/partial/incorrect
+3. Brief feedback (what was missing or wrong)
+
+Respond with ONLY valid JSON (no markdown):
+{{
+  "question_feedback": [
+    {{"question_id": "q1", "score": 1, "max_score": {max_per_q}, "is_correct": true, "feedback": "..."}}
+  ],
+  "total_score": 5,
+  "max_score": 10,
+  "percentage": 50,
+  "performance_level": "Average",
+  "next_steps": ["Revise X", "Practice more"]
+}}
+"""
+
+        print(f"[DEBUG] Evaluating {len(answers_data)} answers for topic: {topic}")
+        
+        result = await self._call_ollama(prompt)
+        
+        if result:
+            parsed = self._extract_json(result)
+            if parsed and "question_feedback" in parsed:
+                # Ensure question_ids are mapped correctly
+                feedback_list = parsed.get("question_feedback", [])
+                for idx, fb in enumerate(feedback_list):
+                    if idx < len(answers_data):
+                        fb["question_id"] = answers_data[idx].get("question_id", f"q{idx}")
+                        fb["question_text"] = f"Question {idx + 1}"
+                        fb["user_answer"] = answers_data[idx].get("user_answer", "")
+                        fb["correct_answer"] = answers_data[idx].get("correct_answer", "")
+                
+                print(f"[DEBUG] Evaluation complete: {parsed.get('percentage', 0)}%")
+                return parsed
+        
+        # Fallback: Simple matching
+        print("[DEBUG] Evaluation fallback - using simple matching")
+        total = 0
+        max_total = len(answers_data) * max_per_q
+        feedback = []
+        
+        for idx, ans in enumerate(answers_data):
+            user = str(ans.get("user_answer", "")).strip().lower()
+            correct = str(ans.get("correct_answer", "")).strip().lower()
+            
+            is_correct = user == correct or correct in user or user in correct
+            score = max_per_q if is_correct else 0
+            total += score
+            
+            feedback.append({
+                "question_id": ans.get("question_id", f"q{idx}"),
+                "question_text": f"Question {idx + 1}",
+                "user_answer": ans.get("user_answer", ""),
+                "correct_answer": ans.get("correct_answer", ""),
+                "is_correct": is_correct,
+                "score": score,
+                "max_score": max_per_q,
+                "feedback": "Correct!" if is_correct else "Review the correct answer."
+            })
+        
+        percentage = (total / max_total * 100) if max_total > 0 else 0
+        level = "Strong" if percentage >= 70 else ("Average" if percentage >= 40 else "Weak")
+        
+        return {
+            "total_score": total,
+            "max_score": max_total,
+            "percentage": round(percentage, 1),
+            "performance_level": level,
+            "question_feedback": feedback,
+            "next_steps": ["Review incorrect answers", "Try more questions on this topic"]
+        }
+
 
 # Singleton instance
 ollama_service = OllamaService()
+
