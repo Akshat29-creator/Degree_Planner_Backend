@@ -1,0 +1,54 @@
+services:
+  # PostgreSQL Database
+  db:
+    image: postgres:16-alpine
+    container_name: degree_planner_db
+    environment:
+      POSTGRES_DB: degree_planner
+      POSTGRES_USER: planner
+      POSTGRES_PASSWORD: plannerdev
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U planner -d degree_planner" ]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # FastAPI Backend
+  backend:
+    build: ./backend
+    container_name: degree_planner_backend
+    ports:
+      - "8000:8000"
+    environment:
+      DATABASE_URL: postgresql://planner:plannerdev@db:5432/degree_planner
+
+      CORS_ORIGINS: '["http://localhost:3000"]'
+      DEBUG: "true"
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - ./backend:/app
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+
+  # Next.js Frontend
+  frontend:
+    build: ./frontend
+    container_name: degree_planner_frontend
+    ports:
+      - "3000:3000"
+    environment:
+      NEXT_PUBLIC_API_URL: http://localhost:8000
+    depends_on:
+      - backend
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+      - /app/.next
+
+volumes:
+  postgres_data:
