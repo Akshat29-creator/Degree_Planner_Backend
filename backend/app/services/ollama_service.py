@@ -277,50 +277,29 @@ class OllamaService:
         self.model = settings.ollama_model
         self.timeout = 180.0  # Increased timeout for comprehensive course generation (25-40 courses)
     
-    async def _call_ollama(self, prompt: str, system_instruction: str = SYSTEM_PROMPT, fast_mode: bool = False) -> Optional[str]:
-        """Make an async call to local Ollama API.
-        
-        Args:
-            prompt: The prompt to send to the model
-            system_instruction: System prompt for context
-            fast_mode: If True, uses optimized settings for faster responses (shorter output, lower context)
-        """
+    async def _call_ollama(self, prompt: str, system_instruction: str = SYSTEM_PROMPT) -> Optional[str]:
+        """Make an async call to local Ollama API."""
         url = f"{self.base_url}/api/generate"
-        
-        # Fast mode: Optimized for speed (shorter responses, smaller context)
-        # Normal mode: Optimized for quality (longer responses, larger context)
-        if fast_mode:
-            options = {
-                "temperature": 0.3,   # Lower = more deterministic = faster
-                "top_k": 20,          # Smaller = faster sampling
-                "top_p": 0.9,
-                "num_ctx": 4096,      # Smaller context = faster processing
-                "num_predict": 1024,  # Shorter output = faster generation
-                "num_gpu": 99,        # Use all GPU layers
-                "num_thread": 8,
-            }
-        else:
-            options = {
-                "temperature": 0.4,   # Slightly higher for more creative responses
-                "top_k": 40,
-                "top_p": 0.95,
-                "num_ctx": 8192,      # Increased context window for RTX 4060 8GB
-                "num_predict": 4096,  # Allow longer responses for detailed analysis
-                "num_gpu": 99,        # Use all GPU layers
-                "num_thread": 8,      # Optimal for most CPUs
-            }
         
         payload = {
             "model": self.model,
             "prompt": prompt,
             "system": system_instruction,
             "stream": False,
-            "options": options
+            "keep_alive": 0,  # Unload model from GPU immediately after response (0% GPU when idle)
+            "options": {
+                "temperature": 0.4,  # Slightly higher for more creative responses
+                "top_k": 40,
+                "top_p": 0.95,
+                "num_ctx": 8192,  # Increased context window for RTX 4060 8GB
+                "num_predict": 4096,  # Allow longer responses for detailed analysis
+                "num_gpu": 99,  # Use all GPU layers
+                "num_thread": 8,  # Optimal for most CPUs
+            }
         }
         
         try:
-            timeout = 60.0 if fast_mode else self.timeout
-            async with httpx.AsyncClient(timeout=timeout) as client:
+            async with httpx.AsyncClient(timeout=self.timeout) as client:
                 response = await client.post(url, json=payload)
                 
                 if response.status_code != 200:
@@ -442,8 +421,7 @@ Respond with ONLY this JSON format:
   }}
 }}"""
         
-        # Use fast_mode for quicker analysis (smaller context, shorter output)
-        result = await self._call_ollama(prompt, fast_mode=True)
+        result = await self._call_ollama(prompt)
         parsed = self._extract_json(result)
         
         if parsed:
