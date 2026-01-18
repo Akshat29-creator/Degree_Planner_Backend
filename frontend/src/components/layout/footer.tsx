@@ -2,11 +2,19 @@
 "use client";
 
 import Link from "next/link";
-import { GraduationCap, Github, Linkedin, Instagram } from "lucide-react";
+import { usePathname } from "next/navigation";
+import { Brain, Sparkles, Github, Linkedin, Instagram } from "lucide-react";
 import { useAuth } from "@/context/auth-context";
 
 export function Footer() {
     const { user } = useAuth();
+    const pathname = usePathname();
+
+    // Hide Footer on Auth pages and Main Application (Dashboard, Planner, etc.)
+    const hiddenRoutes = ["/login", "/register", "/dashboard", "/planner", "/graph", "/advisor", "/study", "/revision", "/buddy", "/history", "/profile"];
+    const shouldHideFooter = hiddenRoutes.some(route => pathname?.startsWith(route));
+
+    if (shouldHideFooter) return null;
 
     return (
         <footer className="border-t border-white/10 bg-black pt-20 pb-10 z-10 relative overflow-hidden">
@@ -16,13 +24,19 @@ export function Footer() {
             <div className="max-w-7xl mx-auto px-6 relative z-10">
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-12 mb-16">
                     <div className="space-y-6">
-                        <Link href="/" className="flex items-center gap-2 group">
-                            <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-teal-500 to-cyan-600 flex items-center justify-center shadow-lg shadow-teal-500/20 group-hover:scale-110 transition-transform duration-300">
-                                <GraduationCap className="h-4 w-4 text-white" />
+                        <Link href="/" className="flex items-center gap-3 group">
+                            <div className="relative w-10 h-10 flex items-center justify-center bg-gradient-to-br from-violet-600 to-fuchsia-600 rounded-xl text-white shadow-lg shadow-purple-500/25 group-hover:scale-105 transition-transform border border-white/10">
+                                <Brain className="h-5 w-5 relative z-10" />
+                                <Sparkles className="h-3 w-3 absolute top-1 right-1 text-white/70" />
                             </div>
-                            <span className="text-xl font-bold text-white tracking-tight group-hover:text-teal-400 transition-colors">
-                                DegreePlanner
-                            </span>
+                            <div className="flex flex-col">
+                                <span className="text-xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-white to-zinc-400 group-hover:to-white transition-all tracking-tight leading-none">
+                                    DegreePlanner
+                                </span>
+                                <span className="text-[10px] text-purple-400 font-medium tracking-wider flex items-center gap-1">
+                                    AI AGENT <Sparkles className="h-2 w-2" />
+                                </span>
+                            </div>
                         </Link>
                         <p className="text-zinc-500 text-sm leading-relaxed max-w-xs">
                             Empowering students to design their perfect academic journey with responsible AI technology.

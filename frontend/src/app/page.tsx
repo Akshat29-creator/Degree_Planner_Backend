@@ -50,10 +50,16 @@ function LandingNav() {
     )}>
       <div className="max-w-7xl mx-auto px-6 flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-teal-500 to-cyan-600 flex items-center justify-center">
-            <GraduationCap className="h-5 w-5 text-white" />
+          <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-violet-600 to-fuchsia-600 flex items-center justify-center shadow-lg shadow-purple-500/25 border border-white/10 relative">
+            <Brain className="h-5 w-5 text-white relative z-10" />
+            <Sparkles className="h-3 w-3 absolute top-1 right-1 text-white/70" />
           </div>
-          <span className="text-xl font-bold text-white tracking-tight">DegreePlanner</span>
+          <div>
+            <span className="text-xl font-bold text-white tracking-tight block leading-none">DegreePlanner</span>
+            <span className="text-[10px] text-purple-400 font-bold tracking-wider flex items-center gap-1">
+              AI AGENT <Sparkles className="h-2 w-2" />
+            </span>
+          </div>
         </div>
 
         <div className="flex items-center gap-4">

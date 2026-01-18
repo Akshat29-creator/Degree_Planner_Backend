@@ -74,14 +74,17 @@ export function Navbar() {
                 )}>
                     {/* Brand Pill */}
                     <Link href="/dashboard" className="flex items-center gap-3 pr-4 group relative">
-                        <div className="relative w-10 h-10 flex items-center justify-center bg-gradient-to-br from-teal-500 to-cyan-600 rounded-full text-white shadow-lg shadow-teal-500/20 group-hover:scale-105 transition-transform">
-                            <GraduationCap className="h-5 w-5" />
+                        <div className="relative w-10 h-10 flex items-center justify-center bg-gradient-to-br from-violet-600 to-fuchsia-600 rounded-xl text-white shadow-lg shadow-purple-500/25 group-hover:scale-105 transition-transform border border-white/10">
+                            <Brain className="h-5 w-5 relative z-10" />
+                            <Sparkles className="h-3 w-3 absolute top-1 right-1 text-white/70" />
                         </div>
                         <div className="flex flex-col">
-                            <span className="text-sm font-bold text-white tracking-tight leading-none group-hover:text-teal-400 transition-colors">
+                            <span className="text-sm font-bold text-transparent bg-clip-text bg-gradient-to-r from-white to-zinc-400 group-hover:to-white transition-all tracking-tight leading-none">
                                 DegreePlanner
                             </span>
-                            <span className="text-[10px] text-zinc-500 font-medium tracking-wider">AGENT</span>
+                            <span className="text-[10px] text-purple-400 font-medium tracking-wider flex items-center gap-1">
+                                AI AGENT <Sparkles className="h-2 w-2" />
+                            </span>
                         </div>
                     </Link>
 
@@ -106,7 +109,7 @@ export function Navbar() {
                                         )}
                                         <Icon className={cn(
                                             "h-4 w-4 relative z-10 transition-colors",
-                                            isActive ? "text-teal-400" : "group-hover/item:text-teal-400"
+                                            isActive ? "text-purple-400" : "group-hover/item:text-purple-400"
                                         )} />
                                         <span className="relative z-10">{item.label}</span>
                                     </div>
@@ -119,7 +122,7 @@ export function Navbar() {
                     <div className="pl-4 ml-2 border-l border-white/10 flex items-center gap-3">
                         <div className="text-right hidden xl:block">
                             <div className="text-xs font-semibold text-white">{user.email?.split('@')[0]}</div>
-                            <div className="text-[10px] text-teal-400 font-medium uppercase tracking-wider">Student</div>
+                            <div className="text-[10px] text-purple-400 font-medium uppercase tracking-wider">Student</div>
                         </div>
                         <button
                             onClick={logout}
@@ -136,10 +139,13 @@ export function Navbar() {
             {/* MOBILE NAVBAR: BOTTOM BAR (iOS Style) */}
             <header className="lg:hidden fixed top-0 inset-x-0 z-50 p-4 pt-12 flex justify-between items-center bg-gradient-to-b from-black/80 to-transparent pointer-events-none">
                 <div className="flex items-center gap-2 pointer-events-auto">
-                    <div className="w-8 h-8 rounded-lg bg-teal-500 flex items-center justify-center shadow-lg shadow-teal-500/20">
-                        <GraduationCap className="h-4 w-4 text-white" />
+                    <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-violet-600 to-fuchsia-600 flex items-center justify-center shadow-lg shadow-purple-500/25 border border-white/10">
+                        <Brain className="h-5 w-5 text-white" />
                     </div>
-                    <span className="font-bold text-white tracking-tight">DegreePlanner</span>
+                    <div>
+                        <span className="font-bold text-white tracking-tight block leading-none">DegreePlanner</span>
+                        <span className="text-[9px] text-purple-400 font-bold tracking-wider">AI AGENT</span>
+                    </div>
                 </div>
                 <div className="pointer-events-auto">
                     <button onClick={logout} className="p-2 rounded-full bg-black/40 border border-white/10 text-zinc-400 hover:text-white backdrop-blur-md">
