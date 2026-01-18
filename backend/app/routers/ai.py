@@ -389,6 +389,14 @@ async def get_profile_intelligence(
         )
         db_profile = result.scalars().first()
         
+        if not db_profile:
+            # Auto-heal: Create profile if it's missing (should have been created on auth)
+            print(f"⚠️ Profile missing for user {current_user.id}. Creating new one...")
+            db_profile = Profile(user_id=current_user.id)
+            db.add(db_profile)
+            await db.commit()
+            await db.refresh(db_profile)
+        
         # Convert DB model to Dict for AI
         current_profile_dict = {
             "name": db_profile.name,
@@ -433,7 +441,10 @@ async def get_profile_intelligence(
         return ai_result
         
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        import traceback
+        print(f"❌ Error in get_profile_intelligence: {str(e)}")
+        print(traceback.format_exc())
+        raise HTTPException(status_code=500, detail=f"Profile intelligence failed: {str(e)}")
 
 
 @router.get("/profile/data", response_model=UserProfile)

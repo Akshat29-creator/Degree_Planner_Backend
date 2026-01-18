@@ -46,6 +46,7 @@ import { VisualRoadmap } from "./VisualRoadmap";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import confetti from "canvas-confetti";
+import indianCourses from "@/data/indian-courses";
 
 // Confetti celebration function
 const triggerConfetti = () => {
@@ -625,16 +626,47 @@ export default function PlannerPage() {
         }
     };
 
-    const handleUsePresetCourses = () => {
-        if (!selectedDegree || !selectedYear) return;
+    const handleUsePresetCourses = async () => {
+        if (!selectedSpecialization || !selectedDegreeType || !selectedYear) return;
 
         const yearInfo = years.find(y => y.year === selectedYear);
         if (yearInfo) {
             setRemainingSemesters(yearInfo.semesters);
         }
 
-        // 🎯 Always use AI to generate comprehensive Indian college curriculum (25-40 courses)
-        // This ensures users get a complete curriculum, not limited presets
+        // 🚀 NEW: Use pre-cached Indian courses data for instant loading
+        // Check if we have cached data for this degree/specialization combo
+        const degreeData = indianCourses[selectedDegreeType];
+        const specializationData = degreeData?.[selectedSpecialization];
+
+        if (specializationData) {
+            // Load pre-cached courses from selectedYear onwards
+            const allCourses = [];
+            const maxYear = degreeTypes.find(d => d.id === selectedDegreeType)?.duration || 4;
+
+            for (let year = selectedYear; year <= maxYear; year++) {
+                const yearCourses = specializationData[year];
+                if (yearCourses) {
+                    allCourses.push(...yearCourses);
+                }
+            }
+
+            if (allCourses.length > 0) {
+                // ⏱️ 5-second delay to simulate AI generation (smoother UX)
+                setIsGeneratingCourses(true);
+                await new Promise(resolve => setTimeout(resolve, 5000));
+
+                // Load cached courses after delay
+                useAppStore.getState().setCourses(allCourses);
+                useAppStore.getState().setDataSource("uploaded");
+                setIsGeneratingCourses(false);
+                toast.success(`Loaded ${allCourses.length} courses for your degree!`);
+                return;
+            }
+        }
+
+        // Fallback to AI generation for missing data or "Other" degree
+        console.log("No cached data found, falling back to AI generation");
         handleGenerateWithAI();
     };
 

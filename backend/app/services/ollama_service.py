@@ -372,7 +372,7 @@ Analyze this plan thoroughly and provide:
 3. **Suggestions**: 3-4 actionable improvement suggestions (using courses in the plan)
 4. **Key Insight**: One critical insight about this plan
 5. **Career Alignment Score**: 0-100 rating with justification
-6. **Course Details**: For EACH course in the plan, provide:
+6. **Course Details**: YOU MUST SELECT AT LEAST 6 AND NO MORE THAN 8 COURSES. Select the most critical courses for the career goal. If the plan has fewer than 6 courses, analyze ALL of them. Provide for each:
    - What the course teaches (2-3 sentences)
    - Key learning outcomes (3 bullets)
    - How it connects to other courses
@@ -1314,6 +1314,15 @@ RULES:
         Returns:
             Dict with courses list
         """
+        # Dynamic subject count based on remaining years
+        course_ranges = {
+            1: (25, 40),  # 1st year: 25-40 subjects (4 years left)
+            2: (20, 25),  # 2nd year: 20-25 subjects (3 years left)
+            3: (10, 15),  # 3rd year: 10-15 subjects (2 years left)
+            4: (5, 10),   # 4th year: 5-10 subjects (1 year left)
+        }
+        min_courses, max_courses = course_ranges.get(current_year, (15, 25))
+        
         system_prompt = f"""SYSTEM MODE: COMPREHENSIVE INDIAN COLLEGE COURSE GENERATOR
 MODEL: Local Ollama
 
@@ -1329,7 +1338,7 @@ Generate courses for Year {current_year} through Year 4 only.
 ─────────────────────────────────────────
 INDIAN COLLEGE CURRICULUM REQUIREMENTS
 ─────────────────────────────────────────
-1. Generate 25-40 courses TOTAL across the remaining years
+1. Generate {min_courses}-{max_courses} courses TOTAL across the remaining years
 2. Include ALL types of courses taught in Indian colleges:
    - Core/Foundation subjects (mandatory for the degree)
    - Elective subjects (specialization options)

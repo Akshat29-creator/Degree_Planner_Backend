@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useAppStore, demoCourses } from "@/lib/store";
 import { getCareerAdvice } from "@/lib/api";
 import type { AIAdviceResponse } from "@/lib/api";
+import { cachedCareerRoadmaps } from "@/data/career-roadmaps";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -48,6 +49,8 @@ const careerSuggestions = [
     "Cloud Architect",
     "Product Manager",
     "AI Research Scientist",
+    "Blockchain Developer",
+    "Mobile App Developer",
 ];
 
 // Skill mapping for different careers
@@ -82,6 +85,26 @@ const careerSkillMap: Record<string, { required: string[]; recommended: string[]
         recommended: ["Microservices", "Serverless", "Cost Optimization", "Disaster Recovery", "Multi-cloud"],
         tools: ["AWS/GCP/Azure", "Terraform", "Kubernetes", "CloudFormation", "Pulumi"],
     },
+    "blockchain developer": {
+        required: ["Smart Contracts", "Cryptography", "Solidity/Rust", "Web3.js", "Consensus Mechanisms"],
+        recommended: ["Tokenomics", "Security Auditing", "Distributed Systems", "Game Theory", "Finance"],
+        tools: ["Hardhat", "Truffle", "Metamask", "Remix", "Ganache"],
+    },
+    "mobile app developer": {
+        required: ["React Native/Flutter", "iOS/Android Native", "State Management", "API Integration", "UI/UX Implementation"],
+        recommended: ["CI/CD for Mobile", "App Store Optimization", "Offline Storage", "Animations", "Testing"],
+        tools: ["Android Studio", "Xcode", "Firebase", "Postman", "Figma"],
+    },
+    "product manager": {
+        required: ["Product Lifecycle", "Agile/Scrum", "User Research", "Data Analysis", "Roadmapping"],
+        recommended: ["UX Design Basics", "Technical Architecture", "GTM Strategy", "A/B Testing", "Financial Modeling"],
+        tools: ["Jira", "Notion", "Figma", "Amplitude", "Linear"],
+    },
+    "ai research scientist": {
+        required: ["Deep Learning", "Mathematics", "Python", "PyTorch/JAX", "Paper Writing"],
+        recommended: ["Distributed Training", "CUDA Programming", "Grant Writing", "Public Speaking", "Ethics"],
+        tools: ["arXiv", "Overleaf", "Weights & Biases", "HuggingFace", "Google Colab"],
+    },
     "default": {
         required: ["Programming Fundamentals", "Problem Solving", "Data Structures", "Algorithms", "Version Control"],
         recommended: ["System Design", "Cloud Basics", "Databases", "APIs", "Testing"],
@@ -98,9 +121,20 @@ const projectSuggestions: Record<string, { name: string; description: string; di
     ],
     "full stack developer": [
         { name: "Task Manager App", description: "Full CRUD app with React frontend and Node.js backend", difficulty: "Easy" },
-        { name: "E-commerce Platform", description: "Complete store with cart, payments, and user auth", difficulty: "Hard" },
-        { name: "Real-time Chat App", description: "WebSocket-based messaging with React and Socket.io", difficulty: "Medium" },
+        { name: "E-Commerce Site", description: "Shopping cart, payment integration (Stripe), and admin dashboard", difficulty: "Hard" },
+        { name: "Real-time Chat", description: "WebSockets based chat application with rooms", difficulty: "Medium" },
     ],
+    "blockchain developer": [
+        { name: "NFT Marketplace", description: "Buy/Sell NFTs on Ethereum testnet", difficulty: "Hard" },
+        { name: "Voting DApp", description: "Decentralized voting system using smart contracts", difficulty: "Medium" },
+        { name: "DeFi Staking", description: "Token staking platform with yield calculation", difficulty: "Advanced" },
+    ],
+    "mobile app developer": [
+        { name: "Fitness Tracker", description: "Track steps and workouts with graphs", difficulty: "Medium" },
+        { name: "Social Media App", description: "Photo feed with likes and comments", difficulty: "Hard" },
+        { name: "Expense Manager", description: "Offline-first local finance tracker", difficulty: "Easy" },
+    ],
+
     "data scientist": [
         { name: "Sales Forecasting", description: "Time series analysis to predict future sales", difficulty: "Medium" },
         { name: "Customer Segmentation", description: "K-means clustering for marketing targeting", difficulty: "Medium" },
@@ -686,6 +720,8 @@ export default function AdvisorPage() {
     const [advice, setAdvice] = useState<AIAdviceResponse | null>(null);
     const [error, setError] = useState<string | null>(null);
     const [showMore, setShowMore] = useState(false);
+    const [isTyping, setIsTyping] = useState(false);
+    const [typingProgress, setTypingProgress] = useState(0);
 
     // Get skill data based on career goal
     const normalizedGoal = careerGoal.toLowerCase().trim();
@@ -696,18 +732,87 @@ export default function AdvisorPage() {
         if (!careerGoal.trim()) return;
 
         setIsLoading(true);
+        setIsTyping(true);
+        setTypingProgress(0);
         setError(null);
+        setAdvice(null);
 
-        try {
-            const response = await getCareerAdvice(
-                careerGoal,
-                courses.map((c) => c.code)
-            );
-            setAdvice(response);
-        } catch (err) {
-            setError(err instanceof Error ? err.message : "Failed to get advice");
-        } finally {
-            setIsLoading(false);
+        const normalizedGoal = careerGoal.toLowerCase().trim();
+        const cachedData = cachedCareerRoadmaps[normalizedGoal];
+
+        // Start progress animation immediately for BOTH cases
+        // We will manage the interval ID to clear it later if needed
+        let progress = 0;
+        let animationComplete = false;
+
+        // For cached data: 20s duration
+        // For LLM data: variable duration (we'll slow down progress if it takes longer)
+        const targetDuration = cachedData ? 20000 : 30000; // 20s vs 30s base estimate
+        const intervalTime = 200;
+        const steps = targetDuration / intervalTime;
+        const increment = 100 / steps;
+
+        const interval = setInterval(() => {
+            setTypingProgress((prev) => {
+                // Determine next progress
+                let next = prev + increment;
+
+                // Add some randomness to make it feel natural
+                next += (Math.random() * 0.5 - 0.25);
+
+                // If no cached data (LLM mode), cap at 90% until real response comes
+                if (!cachedData && next > 90 && !animationComplete) {
+                    return 90 + (Math.random() * 0.5); // micro-movements at 90%
+                }
+
+                // Cap at 100%
+                if (next > 100) next = 100;
+
+                return next;
+            });
+        }, intervalTime);
+
+
+        if (cachedData) {
+            // == CACHED PATH ==
+            // Just wait for the full 20s duration implicitly by letting the interval run
+            // We can set a timeout to trigger completion
+            setTimeout(() => {
+                clearInterval(interval);
+                setTypingProgress(100);
+                setTimeout(() => {
+                    setIsTyping(false);
+                    setIsLoading(false);
+                    setAdvice(cachedData);
+                }, 500); // Short delay after 100% before showing result
+            }, 20000);
+
+        } else {
+            // == LLM PATH ==
+            try {
+                // The API call happens in parallel with the animation
+                const response = await getCareerAdvice(
+                    careerGoal,
+                    courses.map((c) => c.code)
+                );
+
+                // When API returns:
+                animationComplete = true; // Signal description
+                clearInterval(interval);  // Stop slow increment
+                setTypingProgress(100);   // Jump to 100%
+
+                setTimeout(() => {
+                    setIsTyping(false);
+                    setIsLoading(false);
+                    setAdvice(response);
+                }, 500);
+
+            } catch (err) {
+                clearInterval(interval);
+                setIsTyping(false);
+                setIsLoading(false);
+                setError(err instanceof Error ? err.message : "Failed to get advice");
+            }
         }
     };
 
@@ -1349,14 +1454,10 @@ export default function AdvisorPage() {
                         disabled={isLoading || !careerGoal.trim()}
                         className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-400 hover:to-pink-400 text-white px-8"
                     >
-                        {isLoading ? (
-                            <Loader2 className="h-5 w-5 animate-spin" />
-                        ) : (
-                            <>
-                                Get Roadmap
-                                <ArrowRight className="ml-2 h-4 w-4" />
-                            </>
-                        )}
+                        <>
+                            Get Roadmap
+                            <ArrowRight className="ml-2 h-4 w-4" />
+                        </>
                     </Button>
                 </div>
 
@@ -1386,6 +1487,37 @@ export default function AdvisorPage() {
                         className="glass-card p-6 border-red-500/30 text-center"
                     >
                         <p className="text-red-400">{error}</p>
+                    </motion.div>
+                )}
+
+                {isTyping && (
+                    <motion.div
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -20 }}
+                        className="glass-card p-12 text-center"
+                    >
+                        <div className="mb-6 relative mx-auto w-24 h-24 flex items-center justify-center">
+                            <div className="absolute inset-0 rounded-full border-t-2 border-purple-500 animate-spin" />
+                            <Brain className="h-10 w-10 text-purple-400 animate-pulse" />
+                        </div>
+                        <h3 className="text-xl font-bold text-white mb-2">
+                            AI is Designing Your Career Path
+                        </h3>
+                        <p className="text-zinc-400 mb-6">
+                            Analyzing industry trends, mapping skills, and curating projects...
+                        </p>
+                        <div className="w-full max-w-md mx-auto h-2 bg-white/5 rounded-full overflow-hidden">
+                            <motion.div
+                                className="h-full bg-gradient-to-r from-purple-500 to-pink-500"
+                                initial={{ width: 0 }}
+                                animate={{ width: `${typingProgress}%` }}
+                                transition={{ type: "spring", stiffness: 50 }}
+                            />
+                        </div>
+                        <p className="text-xs text-zinc-500 mt-2 font-mono">
+                            {Math.round(typingProgress)}% COMPLETE
+                        </p>
                     </motion.div>
                 )}
 
