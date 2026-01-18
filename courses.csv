@@ -1,0 +1,11 @@
+course_code,course_name,credits,prerequisites,difficulty
+CS101,Introduction to Computer Science,4,,Easy
+MA101,Calculus I,4,,Medium
+CS102,Data Structures,4,CS101,Medium
+MA102,Calculus II,4,MA101,Medium
+CS201,Algorithms,4,CS102,Hard
+CS202,Operating Systems,4,CS102,Hard
+CS301,Database Systems,3,CS201,Medium
+CS302,Computer Networks,3,CS202,Medium
+CS401,Machine Learning,4,CS201,Hard
+CS402,Distributed Systems,4,CS202,Hard

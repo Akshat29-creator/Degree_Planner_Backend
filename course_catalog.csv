@@ -1,0 +1,15 @@
+course_id,course_name,credits,prerequisites,semester_offered
+CS101,Introduction to Programming,4,,Fall
+CS102,Data Structures,4,CS101,Fall
+CS201,Algorithms,4,CS102,Spring
+CS202,Computer Organization,3,CS101,Spring
+CS301,Operating Systems,4,CS201|CS202,Fall
+CS302,Databases,3,CS102,Spring
+CS303,Computer Networks,3,CS202,Fall
+CS401,Machine Learning,4,CS201,Spring
+CS402,Software Engineering,3,CS201,Fall
+CS403,Capstone Project,6,CS301|CS302|CS402,Spring
+MA101,Calculus I,4,,Fall
+MA102,Discrete Mathematics,3,MA101,Spring
+EL101,Open Elective I,3,,Both
+EL102,Open Elective II,3,,Both
