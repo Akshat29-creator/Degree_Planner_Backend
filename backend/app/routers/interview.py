@@ -538,3 +538,69 @@ async def get_sessions(
     )
     sessions = result.scalars().all()
     return sessions
+
+
+# ==========================================
+# TTS (Text-to-Speech) ENDPOINTS
+# ==========================================
+
+class SpeakRequest(BaseModel):
+    """Request for text-to-speech synthesis."""
+    text: str
+    language: str = "en"
+    voice_preset: str = "interviewer"
+
+
+class SpeakResponse(BaseModel):
+    """Response with audio data."""
+    audio_base64: str
+    format: str = "wav"
+    language: str
+
+
+@router.post("/speak", response_model=SpeakResponse)
+async def speak_text(
+    request: SpeakRequest,
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Convert text to speech using Indic Parler-TTS.
+    Returns base64-encoded WAV audio.
+    """
+    try:
+        from app.services.tts_service import synthesize_speech_base64, is_tts_available
+        
+        if not is_tts_available():
+            raise HTTPException(
+                status_code=503,
+                detail="TTS not available. Install: pip install git+https://github.com/huggingface/parler-tts.git"
+            )
+        
+        audio_base64 = await synthesize_speech_base64(
+            text=request.text,
+            language=request.language,
+            voice_preset=request.voice_preset
+        )
+        
+        return SpeakResponse(
+            audio_base64=audio_base64,
+            format="wav",
+            language=request.language
+        )
+    except ImportError:
+        raise HTTPException(
+            status_code=503,
+            detail="TTS dependencies not installed. Run: pip install git+https://github.com/huggingface/parler-tts.git torch transformers soundfile"
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"TTS synthesis failed: {str(e)}")
+
+
+@router.get("/tts-status")
+async def get_tts_status():
+    """Check if TTS is available."""
+    try:
+        from app.services.tts_service import is_tts_available
+        return {"available": is_tts_available(), "model": "ai4bharat/indic-parler-tts"}
+    except ImportError:
+        return {"available": False, "model": None, "error": "parler-tts not installed"}
