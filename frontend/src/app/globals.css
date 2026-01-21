@@ -13,7 +13,7 @@
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
-  
+
   /* Custom Colors */
   --color-primary: var(--primary);
   --color-primary-foreground: var(--primary-foreground);
@@ -25,14 +25,14 @@
   --color-card-foreground: var(--card-foreground);
   --color-border: var(--border);
   --color-ring: var(--ring);
-  
+
   /* Chart Colors */
   --color-chart-1: var(--chart-1);
   --color-chart-2: var(--chart-2);
   --color-chart-3: var(--chart-3);
   --color-chart-4: var(--chart-4);
   --color-chart-5: var(--chart-5);
-  
+
   /* Radiuses */
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
@@ -42,7 +42,7 @@
 
 :root {
   --radius: 0.75rem;
-  
+
   /* Teal/Cyan Accent Colors */
   --teal-400: #2dd4bf;
   --teal-500: #14b8a6;
@@ -52,34 +52,35 @@
 }
 
 /* Dark Theme (Default) */
-.dark, :root {
+.dark,
+:root {
   --background: #0a0a0f;
   --foreground: #f5f5f5;
-  
+
   --card: rgba(20, 24, 33, 0.8);
   --card-foreground: #f5f5f5;
-  
+
   --popover: #1a1f2e;
   --popover-foreground: #f5f5f5;
-  
+
   --primary: #14b8a6;
   --primary-foreground: #0a0a0f;
-  
+
   --secondary: #1e2330;
   --secondary-foreground: #f5f5f5;
-  
+
   --muted: #1a1f2e;
   --muted-foreground: #8892b0;
-  
+
   --accent: #0d9488;
   --accent-foreground: #f5f5f5;
-  
+
   --destructive: #ef4444;
-  
+
   --border: rgba(255, 255, 255, 0.08);
   --input: rgba(255, 255, 255, 0.1);
   --ring: #14b8a6;
-  
+
   /* Chart Colors */
   --chart-1: #14b8a6;
   --chart-2: #22d3ee;
@@ -92,20 +93,26 @@
    ANIMATED GRADIENT BACKGROUND
 ================================ */
 @keyframes gradientShift {
-  0% { background-position: 0% 50%; }
-  50% { background-position: 100% 50%; }
-  100% { background-position: 0% 50%; }
+  0% {
+    background-position: 0% 50%;
+  }
+
+  50% {
+    background-position: 100% 50%;
+  }
+
+  100% {
+    background-position: 0% 50%;
+  }
 }
 
 .animated-gradient-bg {
-  background: linear-gradient(
-    -45deg,
-    #0f0c29,
-    #1a1a2e,
-    #0d1520,
-    #1a0a20,
-    #0a1520
-  );
+  background: linear-gradient(-45deg,
+      #0f0c29,
+      #1a1a2e,
+      #0d1520,
+      #1a0a20,
+      #0a1520);
   background-size: 400% 400%;
   animation: gradientShift 20s ease infinite;
 }
@@ -119,7 +126,7 @@
   -webkit-backdrop-filter: blur(20px);
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 20px;
-  box-shadow: 
+  box-shadow:
     0 8px 32px rgba(0, 0, 0, 0.3),
     inset 0 1px 0 rgba(255, 255, 255, 0.05);
 }
@@ -130,7 +137,7 @@
 
 .glass-card-hover:hover {
   transform: translateY(-4px);
-  box-shadow: 
+  box-shadow:
     0 12px 40px rgba(20, 184, 166, 0.15),
     inset 0 1px 0 rgba(255, 255, 255, 0.1);
   border-color: rgba(20, 184, 166, 0.3);
@@ -140,11 +147,9 @@
    METRIC CARDS
 ================================ */
 .metric-card {
-  background: linear-gradient(
-    135deg,
-    rgba(20, 184, 166, 0.08) 0%,
-    rgba(34, 211, 238, 0.04) 100%
-  );
+  background: linear-gradient(135deg,
+      rgba(20, 184, 166, 0.08) 0%,
+      rgba(34, 211, 238, 0.04) 100%);
   border: 1px solid rgba(20, 184, 166, 0.15);
   position: relative;
   overflow: hidden;
@@ -218,11 +223,11 @@
   * {
     @apply border-border;
   }
-  
+
   body {
     @apply bg-background text-foreground;
   }
-  
+
   html {
     scroll-behavior: smooth;
   }
@@ -255,6 +260,7 @@
     transform: scale(1);
     opacity: 1;
   }
+
   100% {
     transform: scale(1.5);
     opacity: 0;
@@ -266,10 +272,126 @@
 }
 
 @keyframes float {
-  0%, 100% { transform: translateY(0px); }
-  50% { transform: translateY(-10px); }
+
+  0%,
+  100% {
+    transform: translateY(0px);
+  }
+
+  50% {
+    transform: translateY(-10px);
+  }
 }
 
 .animate-float {
   animation: float 3s ease-in-out infinite;
+}
+
+/* ================================
+   INTERVIEW FEATURE STYLES
+================================ */
+
+/* Interview Call Buttons */
+.interview-btn-call {
+  @apply relative inline-flex items-center justify-center px-8 py-4 font-bold text-sm text-white transition-all duration-300 bg-gradient-to-r from-green-500 to-emerald-600 border border-green-400/30 rounded-full shadow-lg shadow-green-500/25 hover:shadow-green-500/40 hover:scale-105 cursor-pointer min-w-32;
+}
+
+.interview-btn-disconnect {
+  @apply inline-flex items-center justify-center px-8 py-4 text-sm font-bold text-white transition-all duration-300 bg-gradient-to-r from-red-500 to-rose-600 border border-red-400/30 rounded-full shadow-lg shadow-red-500/25 hover:shadow-red-500/40 hover:scale-105 min-w-32;
+}
+
+/* Interview Call View */
+.interview-call-view {
+  @apply flex flex-col sm:flex-row gap-8 items-center justify-center w-full;
+}
+
+.interview-card-interviewer {
+  @apply flex flex-col items-center justify-center gap-2 p-8 h-[350px] w-full sm:w-[350px] rounded-2xl border-2 border-purple-500/30;
+  background: linear-gradient(180deg, rgba(88, 28, 135, 0.2) 0%, rgba(15, 15, 25, 0.9) 100%);
+}
+
+.interview-avatar {
+  @apply relative flex items-center justify-center rounded-full w-[120px] h-[120px];
+  background: linear-gradient(135deg, rgba(168, 85, 247, 0.3) 0%, rgba(139, 92, 246, 0.2) 100%);
+}
+
+.interview-animate-speak {
+  @apply absolute inline-flex w-[85%] h-[85%] animate-ping rounded-full bg-purple-400 opacity-50;
+}
+
+.interview-card-user {
+  @apply p-0.5 rounded-2xl w-full sm:w-[350px] h-[350px] hidden md:block;
+  background: linear-gradient(180deg, rgba(75, 77, 79, 1) 0%, rgba(75, 77, 79, 0.2) 100%);
+}
+
+.interview-card-user-content {
+  @apply flex flex-col gap-2 justify-center items-center p-8 rounded-2xl h-full;
+  background: linear-gradient(180deg, rgba(26, 28, 32, 1) 0%, rgba(8, 9, 13, 1) 100%);
+}
+
+/* Interview Transcript */
+.interview-transcript-border {
+  @apply p-0.5 rounded-2xl w-full;
+  background: linear-gradient(180deg, rgba(75, 77, 79, 1) 0%, rgba(75, 77, 79, 0.2) 100%);
+}
+
+.interview-transcript {
+  @apply rounded-2xl min-h-12 px-6 py-4 flex items-center justify-center;
+  background: linear-gradient(180deg, rgba(26, 28, 32, 1) 0%, rgba(8, 9, 13, 1) 100%);
+}
+
+.interview-transcript p {
+  @apply text-lg text-center text-white;
+}
+
+/* Interview Cards */
+.interview-card-border {
+  @apply p-0.5 rounded-2xl;
+  background: linear-gradient(180deg, rgba(75, 77, 79, 1) 0%, rgba(75, 77, 79, 0.2) 100%);
+}
+
+.interview-card {
+  @apply rounded-2xl min-h-full flex flex-col p-6 relative overflow-hidden gap-6 justify-between;
+  background: linear-gradient(180deg, rgba(26, 28, 32, 1) 0%, rgba(8, 9, 13, 1) 100%);
+}
+
+/* Interview Fade In Animation */
+@keyframes interviewFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(5px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fadeIn {
+  animation: interviewFadeIn 0.3s ease-in-out forwards;
+}
+
+/* Interview Layout */
+.interview-root-layout {
+  @apply flex flex-col gap-12;
+}
+
+.interview-card-cta {
+  @apply flex flex-row rounded-3xl px-16 py-6 items-center justify-between max-sm:px-4;
+  background: linear-gradient(180deg, rgba(23, 21, 50, 1) 0%, rgba(8, 9, 13, 1) 100%);
+}
+
+.interview-interviews-section {
+  @apply flex flex-wrap gap-4 max-lg:flex-col w-full items-stretch;
+}
+
+.interview-btn-primary {
+  @apply w-fit px-5 py-3 rounded-full font-bold cursor-pointer min-h-10 transition-all;
+  background: linear-gradient(135deg, #CAC5FE 0%, #a5a0e6 100%);
+  color: #0a0a0f;
+}
+
+.interview-btn-primary:hover {
+  background: linear-gradient(135deg, #b8b3f0 0%, #9590d9 100%);
 }
