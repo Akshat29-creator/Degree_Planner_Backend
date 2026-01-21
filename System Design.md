@@ -37,12 +37,13 @@ The platform distinguishes itself through its commitment to local AI inference. 
 
 ### 1.1 System Scope
 
-The platform encompasses five core functional domains:
+The platform encompasses six core functional domains:
 
 - **Study Planner**: Time-based academic schedule generation with conflict detection
 - **Revision Practice Engine**: AI-generated question banks with self-assessment capabilities
 - **Academic Tutor**: Topic-specific explanations derived from user-provided materials
 - **AI Study Buddy**: Behavioral support system for motivation and study habit optimization
+- **AI Interview Coach**: Voice-powered mock interview practice with real-time feedback
 - **Authentication System**: Secure user identity management with persistent profiles
 
 ### 1.2 Technology Overview
@@ -53,6 +54,7 @@ The platform encompasses five core functional domains:
 | Backend | FastAPI | Async Python REST API |
 | Database | PostgreSQL | Relational data persistence |
 | AI Runtime | Ollama | Local LLM inference |
+| Voice AI | VAPI | Real-time voice interview agents |
 | Model | llama3.1:8b | Primary reasoning model |
 
 ---
@@ -200,6 +202,9 @@ Backend  <---> Ollama:     HTTP POST to localhost:11434
 | PracticePanel | `/components/revision/` | Question generation and self-test UI |
 | PlannerGraph | `/app/graph/` | Interactive prerequisite visualization |
 | StudyPlanner | `/app/study/` | Time-based schedule interface |
+| InterviewPage | `/app/interview/` | Interview dashboard and session management |
+| Agent | `/components/interview/` | VAPI voice agent for mock interviews |
+| InterviewCard | `/components/interview/` | Interview session display cards |
 
 ### 5.2 Backend Routers
 
@@ -213,6 +218,8 @@ Backend  <---> Ollama:     HTTP POST to localhost:11434
 | courses | `/api/courses` | 4 | Course catalog operations |
 | history | `/api/history` | 3 | Plan history management |
 | manual_entry | `/api/manual-entry` | 2 | Transcript parsing |
+| interview | `/api/interview` | 5 | Mock interview sessions, feedback |
+| vapi | `/api/vapi` | 2 | VAPI voice agent integration |
 
 ### 5.3 Service Layer
 
@@ -466,6 +473,68 @@ User Action: Update profile settings
 User sees: Success confirmation
 ```
 
+### 6.8 AI Interview Coach Flow
+
+```
+User Action: Click "Start New Session"
+        |
+        v
+[Interview Page]
+        |
+        | 1. Configure interview (role, level, type, techstack)
+        | 2. Set question count
+        v
+[Frontend - VAPI Generate]
+        |
+        | POST /api/vapi/generate
+        | Body: {role, level, type, techstack, amount}
+        v
+[API Route - Question Generation]
+        |
+        | 1. Build prompt for question generation
+        | 2. Call Gemini/Ollama for questions
+        | 3. Return generated questions
+        v
+[Interview Page]
+        |
+        | User reviews/edits questions
+        | Click "Start Interview"
+        v
+[Frontend - Create Interview]
+        |
+        | POST /api/interview/create
+        | Body: {role, type, level, techstack, questions, userId}
+        v
+[Firebase - Interviews Collection]
+        |
+        | Store interview document
+        | Return interview ID
+        v
+[Agent Component - VAPI Voice Session]
+        |
+        | 1. Initialize VAPI WebClient
+        | 2. Start voice call with AI interviewer
+        | 3. Real-time voice conversation
+        | 4. Transcript saved on call end
+        v
+[Frontend - Generate Feedback]
+        |
+        | POST /api/interview/feedback
+        | Body: {interviewId, userId, transcript, questions}
+        v
+[API - Feedback Generation]
+        |
+        | 1. Analyze transcript against questions
+        | 2. Generate performance scores
+        | 3. Create actionable feedback
+        v
+[Firebase - Feedback Collection]
+        |
+        | Store feedback document
+        v
+User sees: Interview feedback page with scores and recommendations
+```
+
 ---
 
 ## 7. Low-Level Design (LLD)
@@ -689,7 +758,17 @@ Security Utilities
 | POST | `/api/revision/strategy` | `{topics, time_available}` | RevisionStrategy | Required |
 | POST | `/api/revision/explain` | `{topic_name, notes}` | TopicExplanation | Required |
 
-### 8.6 Request/Response Examples
+### 8.6 Interview Endpoints
+
+| Method | Endpoint | Request Body | Response | Auth |
+|--------|----------|--------------|----------|------|
+| POST | `/api/vapi/generate` | `{role, level, type, techstack, amount}` | GeneratedQuestions | None |
+| POST | `/api/interview/create` | `{role, type, level, techstack, questions, userId}` | InterviewId | Required |
+| POST | `/api/interview/feedback` | `{interviewId, userId, transcript, questions}` | FeedbackResult | Required |
+| GET | `/api/interview/user/:userId` | - | List[Interview] | Required |
+| GET | `/api/interview/:id` | - | InterviewDetails | Required |
+
+### 8.7 Request/Response Examples
 
 **Generate Questions Request**
 ```json
