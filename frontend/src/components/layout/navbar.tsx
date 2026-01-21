@@ -16,7 +16,8 @@ import {
     LogOut,
     Sparkles,
     ChevronRight,
-    Clock // Added Clock
+    Clock,
+    Mic // Added for Interview
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/context/auth-context";
@@ -30,13 +31,14 @@ const navItems = [
     { href: "/study", label: "Study", icon: Brain },
     { href: "/revision", label: "Revision", icon: Repeat },
     { href: "/buddy", label: "Buddy", icon: Heart },
+    { href: "/interview", label: "Interview", icon: Mic },
     { href: "/history", label: "History", icon: Clock },
     { href: "/profile", label: "Me", icon: UserCircle },
 ];
 
 export function Navbar() {
     const pathname = usePathname();
-    const { user, logout } = useAuth();
+    const { user, logout, isLoading } = useAuth();
     const [scrolled, setScrolled] = useState(false);
 
     // Listen for scroll to adjust navbar appearance
@@ -48,7 +50,8 @@ export function Navbar() {
         return () => window.removeEventListener("scroll", handleScroll);
     }, []);
 
-    if (!user) return null;
+    if (isLoading) return null; // Avoid flicker
+    if (!user) return null; // Only show for logged in users 
 
     return (
         <>
@@ -118,19 +121,33 @@ export function Navbar() {
                         })}
                     </nav>
 
-                    {/* User Profile Pill */}
-                    <div className="pl-4 ml-2 border-l border-white/10 flex items-center gap-3">
-                        <div className="text-right hidden xl:block">
-                            <div className="text-xs font-semibold text-white">{user.email?.split('@')[0]}</div>
-                            <div className="text-[10px] text-purple-400 font-medium uppercase tracking-wider">Student</div>
+                    {/* User Profile Pill - AUTO WIDTH */}
+                    <div className="pl-5 ml-4 border-l border-white/10 flex items-center gap-3">
+                        <div className="text-right hidden xl:flex flex-col items-end whitespace-nowrap">
+                            <div className="text-xs font-semibold text-white">
+                                {user?.email?.split('@')[0] || 'Guest'}
+                            </div>
+                            <div className="text-[10px] text-purple-400 font-medium uppercase tracking-wider">
+                                {user ? 'Student' : 'Visitor'}
+                            </div>
                         </div>
-                        <button
-                            onClick={logout}
-                            className="w-9 h-9 rounded-full bg-red-500/10 hover:bg-red-500 hover:text-white text-red-400 flex items-center justify-center transition-all duration-300"
-                            title="Sign Out"
-                        >
-                            <LogOut className="h-4 w-4" />
-                        </button>
+                        {user ? (
+                            <button
+                                onClick={logout}
+                                className="w-9 h-9 rounded-full bg-red-500/10 hover:bg-red-500 hover:text-white text-red-400 flex-shrink-0 flex items-center justify-center transition-all duration-300"
+                                title="Sign Out"
+                            >
+                                <LogOut className="h-4 w-4" />
+                            </button>
+                        ) : (
+                            <Link
+                                href="/auth/login"
+                                className="w-9 h-9 rounded-full bg-green-500/10 hover:bg-green-500 hover:text-white text-green-400 flex-shrink-0 flex items-center justify-center transition-all duration-300"
+                                title="Sign In"
+                            >
+                                <UserCircle className="h-4 w-4" />
+                            </Link>
+                        )}
                     </div>
                 </div>
             </header>
