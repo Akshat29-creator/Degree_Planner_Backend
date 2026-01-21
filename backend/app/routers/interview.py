@@ -545,10 +545,11 @@ async def get_sessions(
 # ==========================================
 
 class SpeakRequest(BaseModel):
-    """Request for text-to-speech synthesis."""
+    """Request for text-to-speech synthesis.
+    Speaker is automatically selected based on language.
+    """
     text: str
     language: str = "en"
-    voice_preset: str = "interviewer"
 
 
 class SpeakResponse(BaseModel):
@@ -565,6 +566,7 @@ async def speak_text(
 ):
     """
     Convert text to speech using Indic Parler-TTS.
+    Speaker is automatically selected based on language.
     Returns base64-encoded WAV audio.
     """
     try:
@@ -578,8 +580,7 @@ async def speak_text(
         
         audio_base64 = await synthesize_speech_base64(
             text=request.text,
-            language=request.language,
-            voice_preset=request.voice_preset
+            language=request.language
         )
         
         return SpeakResponse(
@@ -598,9 +599,16 @@ async def speak_text(
 
 @router.get("/tts-status")
 async def get_tts_status():
-    """Check if TTS is available."""
+    """Check if TTS is available and get supported languages."""
     try:
-        from app.services.tts_service import is_tts_available
-        return {"available": is_tts_available(), "model": "ai4bharat/indic-parler-tts"}
+        from app.services.tts_service import is_tts_available, get_supported_languages, LANGUAGE_NAMES
+        return {
+            "available": is_tts_available(),
+            "model": "ai4bharat/indic-parler-tts",
+            "supported_languages": [
+                {"code": lang, "name": LANGUAGE_NAMES.get(lang, lang)}
+                for lang in get_supported_languages()
+            ]
+        }
     except ImportError:
         return {"available": False, "model": None, "error": "parler-tts not installed"}

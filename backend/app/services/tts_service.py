@@ -3,7 +3,21 @@ TTS Service for AI Interview Simulator.
 Uses Indic Parler-TTS for high-quality voice synthesis in multiple Indian languages.
 
 Model: ai4bharat/indic-parler-tts (from HuggingFace)
-Supports: Hindi, Tamil, Telugu, Bengali, Marathi, Kannada, Malayalam, English, and more.
+Supports: 22 Indian languages with pre-defined speaker voices.
+
+Language → Speaker Mapping (per Indic Parler-TTS):
+- Assamese → Amit
+- Bengali → Arjun
+- English → Thoma
+- Gujarati → Yash
+- Hindi → Rohit
+- Kannada → Suresh
+- Malayalam → Anjali
+- Marathi → Sanjay
+- Odia → Manas
+- Punjabi → Divjot
+- Tamil → Jaya
+- Telugu → Prakash
 """
 import os
 import io
@@ -65,54 +79,115 @@ def load_tts_model():
         raise e
 
 
-# Voice description presets
-VOICE_PRESETS = {
-    "female_professional": "A female speaker with a clear Indian accent delivers professional speech with moderate speed and natural intonation. The recording is of high quality with the speaker's voice sounding clear.",
-    "male_professional": "A male speaker with a deep voice and clear Indian accent delivers professional speech at a moderate pace. The recording is clear and close-up.",
-    "female_friendly": "A female speaker with a warm, friendly Indian accent speaks at a comfortable pace with slight expressiveness. High quality recording.",
-    "male_calm": "A male speaker with a calm, reassuring Indian accent delivers speech slowly and clearly. Studio quality recording.",
-    "interviewer": "A professional female interviewer with a clear, confident Indian accent speaks at a moderate pace with natural intonation. Studio quality recording.",
+# ==========================================
+# LANGUAGE → SPEAKER MAPPING (FIXED)
+# ==========================================
+# Indic Parler-TTS recommended speakers per language
+LANGUAGE_SPEAKER_MAP = {
+    "as": "Amit",       # Assamese
+    "bn": "Arjun",      # Bengali
+    "brx": "Bikram",    # Bodo
+    "cg": "Bhanu",      # Chhattisgarhi
+    "doi": "Karan",     # Dogri
+    "en": "Thoma",      # English
+    "gu": "Yash",       # Gujarati
+    "hi": "Rohit",      # Hindi
+    "kn": "Suresh",     # Kannada
+    "ml": "Anjali",     # Malayalam
+    "mni": "Laishram",  # Manipuri
+    "mr": "Sanjay",     # Marathi
+    "ne": "Amrita",     # Nepali
+    "or": "Manas",      # Odia
+    "pa": "Divjot",     # Punjabi
+    "sa": "Aryan",      # Sanskrit
+    "ta": "Jaya",       # Tamil
+    "te": "Prakash",    # Telugu
 }
+
+# Language display names
+LANGUAGE_NAMES = {
+    "as": "Assamese",
+    "bn": "Bengali",
+    "brx": "Bodo",
+    "cg": "Chhattisgarhi",
+    "doi": "Dogri",
+    "en": "English",
+    "gu": "Gujarati",
+    "hi": "Hindi",
+    "kn": "Kannada",
+    "ml": "Malayalam",
+    "mni": "Manipuri",
+    "mr": "Marathi",
+    "ne": "Nepali",
+    "or": "Odia",
+    "pa": "Punjabi",
+    "sa": "Sanskrit",
+    "ta": "Tamil",
+    "te": "Telugu",
+}
+
+
+def get_speaker_for_language(language: str) -> str:
+    """
+    Get the recommended speaker for a language.
+    Uses automatic selection - never exposed to user.
+    """
+    return LANGUAGE_SPEAKER_MAP.get(language, LANGUAGE_SPEAKER_MAP["en"])
+
+
+def is_language_supported(language: str) -> bool:
+    """Check if a language is supported by TTS."""
+    return language in LANGUAGE_SPEAKER_MAP
+
+
+def build_voice_description(speaker: str, language: str) -> str:
+    """
+    Build a natural voice description for Indic Parler-TTS.
+    Short sentences, professional tone.
+    """
+    lang_name = LANGUAGE_NAMES.get(language, "English")
+    
+    # Professional interviewer voice description
+    description = (
+        f"{speaker} speaks clearly and professionally. "
+        f"The voice is natural with {lang_name} accent. "
+        f"Moderate pace, clear pronunciation, studio quality recording."
+    )
+    
+    return description
 
 
 async def synthesize_speech(
     text: str,
-    language: str = "en",
-    voice_preset: str = "interviewer"
+    language: str = "en"
 ) -> bytes:
     """
     Convert text to speech using Indic Parler-TTS.
     
+    Speaker is automatically selected based on language.
+    
     Args:
-        text: Text to speak
+        text: Text to speak (keep short for natural output)
         language: Language code (en, hi, ta, te, bn, etc.)
-        voice_preset: Voice description preset
         
     Returns:
         WAV audio bytes
     """
+    # Check if language is supported
+    if not is_language_supported(language):
+        print(f"[TTS] Language '{language}' not supported, falling back to English")
+        language = "en"
+    
     model, tokenizer, description_tokenizer = load_tts_model()
     device = get_device()
     
-    # Get voice description
-    description = VOICE_PRESETS.get(voice_preset, VOICE_PRESETS["interviewer"])
+    # Auto-select speaker for language (never exposed to user)
+    speaker = get_speaker_for_language(language)
     
-    # Add language context to description if not English
-    if language != "en":
-        lang_names = {
-            "hi": "Hindi",
-            "ta": "Tamil",
-            "te": "Telugu",
-            "bn": "Bengali",
-            "mr": "Marathi",
-            "kn": "Kannada",
-            "ml": "Malayalam",
-            "gu": "Gujarati",
-            "pa": "Punjabi",
-            "or": "Odia",
-        }
-        lang_name = lang_names.get(language, "Hindi")
-        description = description.replace("Indian accent", f"{lang_name} accent")
+    # Build voice description
+    description = build_voice_description(speaker, language)
+    
+    print(f"[TTS] Synthesizing: lang={language}, speaker={speaker}")
     
     # Tokenize inputs
     description_input_ids = description_tokenizer(
@@ -145,8 +220,7 @@ async def synthesize_speech(
 
 async def synthesize_speech_base64(
     text: str,
-    language: str = "en",
-    voice_preset: str = "interviewer"
+    language: str = "en"
 ) -> str:
     """
     Convert text to speech and return as base64-encoded WAV.
@@ -154,12 +228,11 @@ async def synthesize_speech_base64(
     Args:
         text: Text to speak
         language: Language code
-        voice_preset: Voice description preset
         
     Returns:
         Base64-encoded WAV audio (for web playback)
     """
-    audio_bytes = await synthesize_speech(text, language, voice_preset)
+    audio_bytes = await synthesize_speech(text, language)
     return base64.b64encode(audio_bytes).decode("utf-8")
 
 
@@ -173,11 +246,19 @@ def is_tts_available() -> bool:
         return False
 
 
+def get_supported_languages() -> list:
+    """Get list of supported language codes."""
+    return list(LANGUAGE_SPEAKER_MAP.keys())
+
+
 # Export for API usage
 __all__ = [
     "synthesize_speech",
     "synthesize_speech_base64",
     "load_tts_model",
     "is_tts_available",
-    "VOICE_PRESETS",
+    "is_language_supported",
+    "get_supported_languages",
+    "LANGUAGE_SPEAKER_MAP",
+    "LANGUAGE_NAMES",
 ]

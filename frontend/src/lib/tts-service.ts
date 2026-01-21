@@ -76,7 +76,7 @@ export async function speak(
 
         // Try backend TTS first
         if (token) {
-            const success = await speakWithBackend(text, language, voicePreset, token);
+            const success = await speakWithBackend(text, language, token);
             if (success) {
                 onEnd?.();
                 return;
@@ -102,11 +102,11 @@ export async function speak(
 
 /**
  * Speak using backend Indic Parler-TTS
+ * Speaker is automatically selected based on language
  */
 async function speakWithBackend(
     text: string,
     language: string,
-    voicePreset: VoicePreset,
     token: string
 ): Promise<boolean> {
     try {
@@ -119,7 +119,6 @@ async function speakWithBackend(
             body: JSON.stringify({
                 text,
                 language,
-                voice_preset: voicePreset,
             }),
         });
 
