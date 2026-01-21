@@ -11,7 +11,7 @@ export function Footer() {
     const pathname = usePathname();
 
     // Hide Footer on Auth pages and Main Application (Dashboard, Planner, etc.)
-    const hiddenRoutes = ["/login", "/register", "/dashboard", "/planner", "/graph", "/advisor", "/study", "/revision", "/buddy", "/history", "/profile"];
+    const hiddenRoutes = ["/login", "/register", "/dashboard", "/planner", "/graph", "/advisor", "/study", "/revision", "/buddy", "/history", "/profile", "/interview"];
     const shouldHideFooter = hiddenRoutes.some(route => pathname?.startsWith(route));
 
     if (shouldHideFooter) return null;
