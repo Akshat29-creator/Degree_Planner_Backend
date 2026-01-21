@@ -29,6 +29,7 @@ const navItems = [
     { href: "/advisor", label: "Advisor", icon: Bot },
     { href: "/study", label: "Study", icon: Brain },
     { href: "/revision", label: "Revision", icon: Repeat },
+    { href: "/interview", label: "Interview", icon: UserCircle },
     { href: "/buddy", label: "Buddy", icon: Heart },
     { href: "/history", label: "History", icon: Clock },
     { href: "/profile", label: "Me", icon: UserCircle },

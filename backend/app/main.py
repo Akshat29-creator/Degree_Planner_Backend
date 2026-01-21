@@ -13,7 +13,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import get_settings
 from app.database import init_db
-from app.routers import courses_router, planner_router, ai_router, auth_router, revision_router, history_router, manual_entry_router, practice_router
+from app.routers import courses_router, planner_router, ai_router, auth_router, revision_router, history_router, manual_entry_router, practice_router, interview_router
 
 settings = get_settings()
 
@@ -45,6 +45,7 @@ app = FastAPI(
     - 📜 Plan history tracking
     - ✏️ Manual course entry with AI analysis
     - 📝 Practice & Self-Test engine
+    - 🎤 AI Interview Simulator
     """,
     version="2.1.0",
     lifespan=lifespan,
@@ -68,6 +69,7 @@ app.include_router(revision_router, prefix="/api")  # /api/revision/*
 app.include_router(history_router, prefix="/api")  # /api/history/*
 app.include_router(manual_entry_router, prefix="/api")  # /api/manual-entry/*
 app.include_router(practice_router, prefix="/api")  # /api/practice/*
+app.include_router(interview_router, prefix="/api")  # /api/interview/*
 
 
 @app.get("/")
