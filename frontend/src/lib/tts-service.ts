@@ -250,7 +250,7 @@ let isListening = false;
 export function isSpeechRecognitionAvailable(): boolean {
     return !!(
         typeof window !== "undefined" &&
-        (window.SpeechRecognition || (window as any).webkitSpeechRecognition)
+        ((window as any).SpeechRecognition || (window as any).webkitSpeechRecognition)
     );
 }
 
@@ -275,10 +275,10 @@ export function startListening(
     // Stop any existing recognition
     stopListening();
 
-    const SpeechRecognition =
-        window.SpeechRecognition || (window as any).webkitSpeechRecognition;
+    const SpeechRecognitionCtor =
+        (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
 
-    recognition = new SpeechRecognition();
+    recognition = new SpeechRecognitionCtor();
 
     // Map language codes
     const langMap: Record<string, string> = {
