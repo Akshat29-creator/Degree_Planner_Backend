@@ -166,6 +166,7 @@ function playBase64Audio(base64: string): Promise<void> {
 
 /**
  * Speak using browser's built-in TTS (fallback)
+ * Tries to select the best available voice for natural speech
  */
 function speakWithBrowser(text: string, language: string): Promise<void> {
     return new Promise((resolve, reject) => {
@@ -193,9 +194,31 @@ function speakWithBrowser(text: string, language: string): Promise<void> {
             pa: "pa-IN",
         };
 
-        utterance.lang = langMap[language] || "en-IN";
-        utterance.rate = 0.9;
-        utterance.pitch = 1.0;
+        const targetLang = langMap[language] || "en-IN";
+        utterance.lang = targetLang;
+
+        // Try to find a good voice - prefer female voices for interviewer
+        const voices = window.speechSynthesis.getVoices();
+        if (voices.length > 0) {
+            // Priority: 1) Google voices, 2) Microsoft voices, 3) Any matching language
+            const preferredVoice = voices.find(v =>
+                v.lang.startsWith(targetLang.split("-")[0]) &&
+                (v.name.includes("Google") || v.name.includes("Microsoft"))
+            ) || voices.find(v =>
+                v.lang.startsWith(targetLang.split("-")[0])
+            ) || voices.find(v =>
+                v.lang.startsWith("en") && v.name.includes("Google")
+            );
+
+            if (preferredVoice) {
+                utterance.voice = preferredVoice;
+            }
+        }
+
+        // Natural speech settings
+        utterance.rate = 0.95;  // Slightly slower for clarity
+        utterance.pitch = 1.05; // Slightly higher for professional tone
+        utterance.volume = 1.0;
 
         utterance.onend = () => {
             isPlaying = false;
@@ -208,7 +231,15 @@ function speakWithBrowser(text: string, language: string): Promise<void> {
         };
 
         isPlaying = true;
-        window.speechSynthesis.speak(utterance);
+
+        // Chrome bug workaround: voices may not be loaded immediately
+        if (voices.length === 0) {
+            window.speechSynthesis.onvoiceschanged = () => {
+                window.speechSynthesis.speak(utterance);
+            };
+        } else {
+            window.speechSynthesis.speak(utterance);
+        }
     });
 }
 
@@ -308,7 +339,18 @@ export function startListening(
 
     recognition.onerror = (event: any) => {
         isListening = false;
-        onError?.(new Error(`Recognition error: ${event.error}`));
+
+        // Provide user-friendly error messages
+        let errorMessage = `Recognition error: ${event.error}`;
+        if (event.error === "network") {
+            errorMessage = "Speech recognition requires internet connection. Please check your network or type your answer instead.";
+        } else if (event.error === "not-allowed") {
+            errorMessage = "Microphone access denied. Please allow microphone permission.";
+        } else if (event.error === "no-speech") {
+            errorMessage = "No speech detected. Please try speaking again.";
+        }
+
+        onError?.(new Error(errorMessage));
     };
 
     recognition.start();
