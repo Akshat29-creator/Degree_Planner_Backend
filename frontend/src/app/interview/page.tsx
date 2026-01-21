@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "@/context/auth-context";
 import { AuthGuard } from "@/components/auth/auth-guard";
@@ -10,8 +10,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import {
     Mic,
+    MicOff,
     Send,
     Play,
+    Pause,
     RotateCcw,
     FileText,
     Upload,
@@ -31,9 +33,21 @@ import {
     Download,
     Award,
     TrendingUp,
-    AlertCircle
+    AlertCircle,
+    Volume2,
+    VolumeX
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import {
+    speak,
+    stopSpeaking,
+    isSpeaking,
+    checkTTSStatus,
+    startListening,
+    stopListening,
+    isSpeechRecognitionAvailable,
+    isCurrentlyListening
+} from "@/lib/tts-service";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
@@ -146,7 +160,27 @@ function InterviewContent() {
     const [pastSessions, setPastSessions] = useState<InterviewSession[]>([]);
     const [showHistory, setShowHistory] = useState(false);
 
+    // ==========================================
+    // VOICE STATE (TTS + STT)
+    // ==========================================
+    const [voiceEnabled, setVoiceEnabled] = useState(true);
+    const [ttsAvailable, setTtsAvailable] = useState(false);
+    const [sttAvailable, setSttAvailable] = useState(false);
+    const [isSpeakingNow, setIsSpeakingNow] = useState(false);
+    const [isRecording, setIsRecording] = useState(false);
+    const [interimTranscript, setInterimTranscript] = useState("");
+
     const chatEndRef = useRef<HTMLDivElement>(null);
+
+    // Check TTS/STT availability on mount
+    useEffect(() => {
+        const checkVoiceCapabilities = async () => {
+            const ttsStatus = await checkTTSStatus();
+            setTtsAvailable(ttsStatus.available);
+            setSttAvailable(isSpeechRecognitionAvailable());
+        };
+        checkVoiceCapabilities();
+    }, []);
 
     // Scroll to bottom of chat
     useEffect(() => {
@@ -159,6 +193,76 @@ function InterviewContent() {
             loadPastSessions();
         }
     }, [token]);
+
+    // ==========================================
+    // VOICE FUNCTIONS
+    // ==========================================
+
+    /**
+     * Speak text via TTS (backend Indic Parler-TTS or browser fallback)
+     */
+    const speakText = useCallback(async (text: string) => {
+        if (!voiceEnabled) return;
+
+        setIsSpeakingNow(true);
+        try {
+            await speak(text, {
+                token,
+                language: "en",
+                voicePreset: "interviewer",
+                onStart: () => setIsSpeakingNow(true),
+                onEnd: () => setIsSpeakingNow(false),
+                onError: (e) => {
+                    console.error("[TTS Error]:", e);
+                    setIsSpeakingNow(false);
+                }
+            });
+        } catch (e) {
+            setIsSpeakingNow(false);
+        }
+    }, [voiceEnabled, token]);
+
+    /**
+     * Start/stop voice recording for answer input
+     */
+    const toggleRecording = useCallback(() => {
+        if (isRecording) {
+            stopListening();
+            setIsRecording(false);
+            setInterimTranscript("");
+        } else {
+            setIsRecording(true);
+            setInterimTranscript("");
+            startListening({
+                language: "en-IN",
+                onResult: (transcript, isFinal) => {
+                    if (isFinal) {
+                        setAnswer(prev => prev + " " + transcript);
+                        setInterimTranscript("");
+                    } else {
+                        setInterimTranscript(transcript);
+                    }
+                },
+                onEnd: () => {
+                    setIsRecording(false);
+                    setInterimTranscript("");
+                },
+                onError: (e) => {
+                    console.error("[STT Error]:", e);
+                    setIsRecording(false);
+                    toast.error("Voice recognition failed");
+                }
+            });
+        }
+    }, [isRecording]);
+
+    /**
+     * Stop any ongoing TTS
+     */
+    const stopVoice = useCallback(() => {
+        stopSpeaking();
+        setIsSpeakingNow(false);
+    }, []);
 
     const loadPastSessions = async () => {
         try {
@@ -231,6 +335,11 @@ function InterviewContent() {
                     content: question.question_text,
                     metadata: { type: question.question_type, difficulty: question.difficulty }
                 }]);
+
+                // Auto-speak the question if voice is enabled
+                if (voiceEnabled) {
+                    speakText(question.question_text);
+                }
             }
             return question;
         } catch (e) {
@@ -453,6 +562,14 @@ function InterviewContent() {
                             submitAnswer={submitAnswer}
                             isAnalyzing={isAnalyzing}
                             chatEndRef={chatEndRef}
+                            voiceEnabled={voiceEnabled}
+                            setVoiceEnabled={setVoiceEnabled}
+                            isRecording={isRecording}
+                            toggleRecording={toggleRecording}
+                            isSpeakingNow={isSpeakingNow}
+                            stopVoice={stopVoice}
+                            interimTranscript={interimTranscript}
+                            sttAvailable={sttAvailable}
                         />
                     )}
 
@@ -571,7 +688,15 @@ function InterviewStage({
     setAnswer,
     submitAnswer,
     isAnalyzing,
-    chatEndRef
+    chatEndRef,
+    voiceEnabled,
+    setVoiceEnabled,
+    isRecording,
+    toggleRecording,
+    isSpeakingNow,
+    stopVoice,
+    interimTranscript,
+    sttAvailable
 }: {
     session: InterviewSession | null;
     currentQuestion: InterviewQuestion | null;
@@ -581,6 +706,14 @@ function InterviewStage({
     submitAnswer: () => void;
     isAnalyzing: boolean;
     chatEndRef: React.RefObject<HTMLDivElement | null>;
+    voiceEnabled: boolean;
+    setVoiceEnabled: (v: boolean) => void;
+    isRecording: boolean;
+    toggleRecording: () => void;
+    isSpeakingNow: boolean;
+    stopVoice: () => void;
+    interimTranscript: string;
+    sttAvailable: boolean;
 }) {
     return (
         <motion.div
@@ -680,30 +813,77 @@ function InterviewStage({
                 </div>
             </div>
 
-            {/* Answer Input */}
-            <div className="flex gap-3">
-                <Textarea
-                    value={answer}
-                    onChange={(e) => setAnswer(e.target.value)}
-                    placeholder="Type your answer here..."
-                    className="flex-1 min-h-[80px] bg-zinc-900 border-zinc-700 text-white resize-none"
-                    disabled={isAnalyzing}
-                    onKeyDown={(e) => {
-                        if (e.key === "Enter" && e.ctrlKey) {
-                            submitAnswer();
-                        }
-                    }}
-                />
-                <Button
-                    onClick={submitAnswer}
-                    disabled={!answer.trim() || isAnalyzing}
-                    className="px-6 bg-gradient-to-r from-violet-600 to-cyan-600"
-                >
-                    <Send className="h-5 w-5" />
-                </Button>
+            {/* Answer Input with Voice Controls */}
+            <div className="flex flex-col gap-3">
+                {/* Voice Toggle */}
+                <div className="flex items-center justify-between">
+                    <button
+                        onClick={() => setVoiceEnabled(!voiceEnabled)}
+                        className={cn(
+                            "flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors",
+                            voiceEnabled
+                                ? "bg-violet-500/20 text-violet-300 border border-violet-500/30"
+                                : "bg-zinc-800 text-zinc-500 border border-zinc-700"
+                        )}
+                    >
+                        {voiceEnabled ? <Volume2 className="h-3.5 w-3.5" /> : <VolumeX className="h-3.5 w-3.5" />}
+                        Voice {voiceEnabled ? "On" : "Off"}
+                    </button>
+
+                    {isSpeakingNow && (
+                        <button
+                            onClick={stopVoice}
+                            className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium bg-red-500/20 text-red-300 border border-red-500/30"
+                        >
+                            <Pause className="h-3.5 w-3.5" />
+                            Stop Speaking
+                        </button>
+                    )}
+                </div>
+
+                {/* Input Area with Mic */}
+                <div className="flex gap-3">
+                    {sttAvailable && (
+                        <Button
+                            onClick={toggleRecording}
+                            className={cn(
+                                "px-4",
+                                isRecording
+                                    ? "bg-red-500 hover:bg-red-600 animate-pulse"
+                                    : "bg-zinc-700 hover:bg-zinc-600"
+                            )}
+                            disabled={isAnalyzing}
+                        >
+                            {isRecording ? <MicOff className="h-5 w-5" /> : <Mic className="h-5 w-5" />}
+                        </Button>
+                    )}
+
+                    <Textarea
+                        value={answer + (interimTranscript ? ` ${interimTranscript}` : "")}
+                        onChange={(e) => setAnswer(e.target.value)}
+                        placeholder={isRecording ? "Listening..." : "Type or speak your answer..."}
+                        className={cn(
+                            "flex-1 min-h-[80px] bg-zinc-900 border-zinc-700 text-white resize-none",
+                            isRecording && "border-red-500/50"
+                        )}
+                        disabled={isAnalyzing}
+                        onKeyDown={(e) => {
+                            if (e.key === "Enter" && e.ctrlKey) {
+                                submitAnswer();
+                            }
+                        }}
+                    />
+                    <Button
+                        onClick={submitAnswer}
+                        disabled={!answer.trim() || isAnalyzing}
+                        className="px-6 bg-gradient-to-r from-violet-600 to-cyan-600"
+                    >
+                        <Send className="h-5 w-5" />
+                    </Button>
+                </div>
             </div>
             <p className="text-xs text-zinc-500 mt-2 text-center">
-                Press Ctrl+Enter to submit
+                {sttAvailable ? "Click mic to speak or Ctrl+Enter to submit" : "Press Ctrl+Enter to submit"}
             </p>
         </motion.div>
     );
