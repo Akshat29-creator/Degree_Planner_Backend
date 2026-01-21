@@ -13,6 +13,7 @@
   <img src="https://img.shields.io/badge/Status-Production%20Ready-success?style=for-the-badge" alt="Status" />
   <img src="https://img.shields.io/badge/AI-Self%20Tuned%20Model-blueviolet?style=for-the-badge" alt="AI" />
   <img src="https://img.shields.io/badge/Privacy-100%25%20Local-brightgreen?style=for-the-badge" alt="Privacy" />
+  <img src="https://img.shields.io/badge/Voice_AI-VAPI-orange?style=for-the-badge" alt="VAPI" />
   <img src="https://img.shields.io/badge/License-MIT-blue?style=for-the-badge" alt="License" />
 </p>
 
@@ -130,6 +131,15 @@ This project addresses these problems with:
 - Conversational interface for study motivation
 - Behavioral support and stress management suggestions
 - Context-aware responses based on user progress
+
+### AI Interview Coach (NEW)
+- AI-powered mock interview practice with voice interaction
+- Technical, behavioral, and mixed interview types
+- Customizable questions by role, level, and tech stack
+- Real-time AI interviewer using VAPI voice agents
+- Instant feedback and performance scoring
+- Interview history tracking and session management
+- Question editing and customization before sessions
 
 ### Authentication and Profile System
 - Email/password registration and login
@@ -315,6 +325,33 @@ Antigravity (external AI service) was used only for generating project documenta
 
 ---
 
+### AI Interview Coach
+
+**What it does:** Provides AI-powered mock interview practice with real-time voice interaction and instant feedback.
+
+**User interaction:**
+1. Navigate to the Interview tab
+2. Click "Start New Session"
+3. Configure interview settings (role, level, type, tech stack)
+4. Set number of questions (3-10)
+5. Review and customize AI-generated questions
+6. Start voice interview session with AI interviewer
+7. Answer questions verbally in real-time
+8. Receive instant AI-powered feedback and scoring
+
+**AI involvement:**
+- Question generation based on role, level, and tech stack
+- Real-time voice conversation via VAPI agents
+- Performance evaluation and constructive feedback
+- Scoring based on technical accuracy and communication
+
+**What it does NOT do:**
+- Does not replace real interview practice with humans
+- Does not guarantee job placement
+- Questions are AI-generated, not from actual companies
+
+---
+
 ### Profile and Authentication
 
 **What it does:** Manages user identity, preferences, and academic profile.
@@ -396,10 +433,20 @@ degree_planner_agent/
 │   │   │   ├── revision/
 │   │   │   ├── advisor/
 │   │   │   ├── buddy/
+│   │   │   ├── interview/      # AI Interview Coach
+│   │   │   │   ├── page.tsx    # Interview dashboard
+│   │   │   │   ├── [id]/       # Dynamic interview session
+│   │   │   │   └── generate/   # Question generation
+│   │   │   ├── api/            # API routes
+│   │   │   │   └── vapi/       # VAPI integration
 │   │   │   └── profile/
 │   │   ├── components/       # Reusable UI
 │   │   │   ├── layout/       # Navbar, Footer
 │   │   │   ├── revision/     # PracticePanel
+│   │   │   ├── interview/    # Interview components
+│   │   │   │   ├── Agent.tsx         # Voice agent
+│   │   │   │   ├── InterviewCard.tsx # Session cards
+│   │   │   │   └── DisplayTechIcons.tsx
 │   │   │   └── ui/           # Design system
 │   │   ├── context/          # Auth context
 │   │   └── lib/              # API client, utilities
@@ -609,6 +656,16 @@ Tables are auto-created on backend startup via SQLAlchemy's `create_all()`.
 |----------|--------|---------|
 | /api/revision/analyze-document | POST | Extract topics from PDF |
 | /api/revision/strategy | POST | Generate revision plan |
+
+### Interview (NEW)
+
+| Endpoint | Method | Purpose |
+|----------|--------|---------|
+| /api/vapi/generate | POST | Generate interview questions |
+| /api/interview/create | POST | Create interview session |
+| /api/interview/feedback | POST | Generate AI feedback |
+| /api/interview/user/:id | GET | Get user's interviews |
+| /api/interview/:id | GET | Get interview details |
 
 Full API documentation available at `/docs` when backend is running.
 
