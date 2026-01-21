@@ -51,19 +51,33 @@ def load_tts_model():
         return _model, _tokenizer, _description_tokenizer
     
     try:
-        from parler_tts import ParlerTTSForConditionalGeneration
+        from parler_tts import ParlerTTSForConditionalGeneration, ParlerTTSConfig
         from transformers import AutoTokenizer
+        from huggingface_hub import hf_hub_download
+        import json
         
         print("[TTS] Loading Indic Parler-TTS model...")
         device = get_device()
         
+        repo_id = "ai4bharat/indic-parler-tts"
+
         # Load model (downloads ~2.5GB on first run)
-        _model = ParlerTTSForConditionalGeneration.from_pretrained(
-            "ai4bharat/indic-parler-tts"
-        ).to(device)
+        try:
+            _model = ParlerTTSForConditionalGeneration.from_pretrained(repo_id).to(device)
+            print("[TTS] Default loading succeeded.")
+        except (ValueError, TypeError) as e:
+            print(f"[TTS] Default loading failed ({e}). using manual config fix...")
+            # Manual config loading for newer parler-tts versions
+            config_path = hf_hub_download(repo_id=repo_id, filename="config.json")
+            with open(config_path, "r") as f:
+                config_dict = json.load(f)
+            
+            config = ParlerTTSConfig(**config_dict)
+            _model = ParlerTTSForConditionalGeneration.from_pretrained(repo_id, config=config).to(device)
+            print("[TTS] Manual config loading succeeded.")
         
         # Load tokenizers
-        _tokenizer = AutoTokenizer.from_pretrained("ai4bharat/indic-parler-tts")
+        _tokenizer = AutoTokenizer.from_pretrained(repo_id)
         _description_tokenizer = AutoTokenizer.from_pretrained(
             _model.config.text_encoder._name_or_path
         )
