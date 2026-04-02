@@ -20,6 +20,10 @@ class User(Base):
     
     # Relationship to Profile
     profile = relationship("Profile", back_populates="user", uselist=False, cascade="all, delete-orphan")
+    
+    # Study Platform Relationships
+    documents = relationship("UploadedDocument", back_populates="user", cascade="all, delete-orphan")
+    test_results = relationship("TestResult", back_populates="user", cascade="all, delete-orphan")
 
 
 class Profile(Base):

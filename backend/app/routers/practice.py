@@ -13,7 +13,9 @@ from datetime import datetime
 
 from app.services.ollama_service import ollama_service
 
-router = APIRouter(prefix="/practice", tags=["Practice & Self-Test"])
+from app.routers.flags import feature_guard
+
+router = APIRouter(prefix="/practice", tags=["Practice & Self-Test"], dependencies=[Depends(feature_guard("practice"))])
 
 # ============================================
 # In-Memory Answer Store (for Self-Test mode)

@@ -1,6 +1,9 @@
+"use client";
+
+import { useState } from "react";
 import { motion } from "framer-motion";
 import { Badge } from "@/components/ui/badge";
-import { Map, Calendar, ChevronRight, GraduationCap } from "lucide-react";
+import { Map, Calendar, ChevronRight, GraduationCap, ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export function VisualRoadmap({ plan, difficulty, courses }: {
@@ -8,6 +11,8 @@ export function VisualRoadmap({ plan, difficulty, courses }: {
     difficulty: Record<string, string>;
     courses?: { code: string; credits: number }[];
 }) {
+    const [expandedSem, setExpandedSem] = useState<string | null>(null);
+
     // Helper to get semester number
     const getSemNum = (s: string) => parseInt(s.replace(/\D/g, '')) || 0;
 
@@ -90,7 +95,7 @@ export function VisualRoadmap({ plan, difficulty, courses }: {
                                 </div>
                             </div>
 
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-12 lg:gap-16">
+                            <div className="flex flex-col gap-4 -mx-4 px-4 md:mx-0 md:px-0 md:grid md:grid-cols-2 md:gap-12 lg:gap-16">
                                 {semesters.map((sem, semIndex) => {
                                     const diff = difficulty[sem.id] || "Moderate";
                                     const isRight = semIndex % 2 !== 0; // Simple L/R split for grid
@@ -106,8 +111,9 @@ export function VisualRoadmap({ plan, difficulty, courses }: {
                                         <motion.div
                                             key={sem.id}
                                             whileHover={{ y: -4 }}
+                                            onClick={() => setExpandedSem(expandedSem === sem.id ? null : sem.id)}
                                             className={cn(
-                                                "relative p-5 rounded-3xl bg-[#0f0f1d] border border-white/5 hover:border-white/10 transition-all duration-300 group shadow-lg",
+                                                "relative p-5 rounded-3xl bg-[#0f0f1d] border border-white/5 hover:border-white/10 transition-all duration-300 group shadow-lg cursor-pointer md:cursor-default",
                                                 semIndex % 2 === 0 ? "md:mr-auto" : "md:ml-auto" // Push into columns if we want Zig Zag, but grid-cols-2 handles it naturally
                                             )}
                                         >
@@ -117,34 +123,43 @@ export function VisualRoadmap({ plan, difficulty, courses }: {
                                             )} />
 
                                             {/* Semester Header */}
-                                            <div className="flex justify-between items-start mb-4 relative z-10">
+                                            <div className="flex justify-between items-center relative z-10">
                                                 <div>
-                                                    <div className="flex items-center gap-2 mb-1">
+                                                    <div className="flex items-center gap-2">
                                                         <Badge variant="secondary" className="bg-white/5 hover:bg-white/10 text-white border-0 text-[10px] font-bold uppercase tracking-wider px-2 py-0.5">
                                                             {sem.semesterName}
                                                         </Badge>
                                                         <span className="text-[10px] font-mono text-zinc-500">SEM {sem.num}</span>
                                                     </div>
                                                 </div>
-                                                <div className={cn("px-2 py-1 rounded-lg flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wide", diffConfig.bg, diffConfig.text)}>
-                                                    {diffConfig.icon} {diff}
+                                                <div className="flex items-center gap-2">
+                                                    <div className={cn("px-2 py-1 rounded-lg flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wide", diffConfig.bg, diffConfig.text)}>
+                                                        {diffConfig.icon} {diff}
+                                                    </div>
+                                                    <ChevronDown className={cn("w-4 h-4 text-zinc-500 transition-transform md:hidden", expandedSem === sem.id ? "rotate-180" : "")} />
                                                 </div>
                                             </div>
 
-                                            {/* Courses */}
-                                            <div className="space-y-2 relative z-10">
-                                                {sem.courses.map((code, idx) => (
-                                                    <div key={idx} className="flex items-center gap-3 p-2.5 rounded-xl bg-black/20 border border-white/5 hover:bg-white/5 transition-colors group/item">
-                                                        <div className={cn("w-1.5 h-1.5 rounded-full shadow-[0_0_8px_currentColor]", diffConfig.text)} />
-                                                        <span className="text-xs font-bold text-zinc-300 group-hover/item:text-white transition-colors">{code}</span>
-                                                    </div>
-                                                ))}
-                                            </div>
+                                            {/* Accordion Body */}
+                                            <div className={cn(
+                                                "overflow-hidden transition-all duration-300 ease-in-out md:block",
+                                                expandedSem === sem.id ? "max-h-[1000px] mt-4 opacity-100" : "max-h-0 opacity-0 md:max-h-[1000px] md:mt-4 md:opacity-100"
+                                            )}>
+                                                {/* Courses */}
+                                                <div className="space-y-2 relative z-10">
+                                                    {sem.courses.map((code, idx) => (
+                                                        <div key={idx} className="flex items-center gap-3 p-2.5 rounded-xl bg-black/20 border border-white/5 hover:bg-white/5 transition-colors group/item">
+                                                            <div className={cn("w-1.5 h-1.5 rounded-full shadow-[0_0_8px_currentColor]", diffConfig.text)} />
+                                                            <span className="text-xs font-bold text-zinc-300 group-hover/item:text-white transition-colors">{code}</span>
+                                                        </div>
+                                                    ))}
+                                                </div>
 
-                                            {/* Footer */}
-                                            <div className="mt-4 pt-3 border-t border-white/5 flex justify-between items-center text-[10px] text-zinc-500 font-bold uppercase tracking-wider relative z-10">
-                                                <span>{sem.courses.length} Courses</span>
-                                                <ChevronRight className="w-3 h-3 text-zinc-600 group-hover:text-white transition-colors" />
+                                                {/* Footer */}
+                                                <div className="mt-4 pt-3 border-t border-white/5 flex justify-between items-center text-[10px] text-zinc-500 font-bold uppercase tracking-wider relative z-10">
+                                                    <span>{sem.courses.length} Courses</span>
+                                                    <ChevronRight className="w-3 h-3 text-zinc-600 group-hover:text-white transition-colors hidden md:block" />
+                                                </div>
                                             </div>
                                         </motion.div>
                                     );

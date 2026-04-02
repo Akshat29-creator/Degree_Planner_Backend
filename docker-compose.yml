@@ -17,6 +17,25 @@ services:
       timeout: 5s
       retries: 5
 
+  # Redis Cache
+  redis:
+    image: redis:7-alpine
+    container_name: degree_planner_redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --save 60 1 --loglevel warning
+
+  # Database GUI (Adminer)
+  adminer:
+    image: adminer
+    container_name: degree_planner_adminer
+    ports:
+      - "8080:8080"
+    depends_on:
+      - db
+
   # FastAPI Backend
   backend:
     build: ./backend
@@ -26,11 +45,15 @@ services:
     environment:
       DATABASE_URL: postgresql://planner:plannerdev@db:5432/degree_planner
 
-      CORS_ORIGINS: '["http://localhost:3000"]'
+      CORS_ORIGINS: '["*"]'
       DEBUG: "true"
+      REDIS_URL: "redis://redis:6379"
+      OLLAMA_BASE_URL: "http://host.docker.internal:11434"
     depends_on:
       db:
         condition: service_healthy
+      redis:
+        condition: service_started
     volumes:
       - ./backend:/app
     command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
@@ -42,13 +65,42 @@ services:
     ports:
       - "3000:3000"
     environment:
-      NEXT_PUBLIC_API_URL: http://localhost:8000
+      # Relative URL: browser calls /api/backend/... which Next.js proxies to the backend container
+      # This makes the app work for ANY device anywhere in the world via Ngrok
+      NEXT_PUBLIC_API_URL: /api/backend
+      # Internal Docker network URL for the server-side proxy in next.config.ts
+      BACKEND_INTERNAL_URL: http://backend:8000
+      GOOGLE_APPLICATION_CREDENTIALS: /app/firebase-credentials.json
+    volumes:
+      - ./prepwise-638a9-firebase-adminsdk-fbsvc-94f37c1f27.json:/app/firebase-credentials.json
     depends_on:
       - backend
+
+  # Developer Options Panel
+  dev-panel:
+    image: node:20-alpine
+    container_name: degree_planner_dev_panel
+    working_dir: /panel
+    ports:
+      - "3001:3001"
     volumes:
-      - ./frontend:/app
-      - /app/node_modules
-      - /app/.next
+      - ./developer-panel:/panel
+    command: node server.js
+    depends_on:
+      - backend
+
+  # Ngrok Secure Tunnel
+  ngrok:
+    image: ngrok/ngrok:latest
+    container_name: degree_planner_ngrok
+    environment:
+      NGROK_AUTHTOKEN: ${NGROK_AUTHTOKEN:-""}
+    command: "http frontend:3000 --log stdout"
+    ports:
+      - "4040:4040"
+    depends_on:
+      - frontend
 
 volumes:
   postgres_data:
+  redis_data:

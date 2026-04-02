@@ -20,7 +20,9 @@ from app.utils.security import (
 )
 import uuid
 
-router = APIRouter(prefix="/auth", tags=["Authentication"])
+from app.routers.flags import feature_guard
+
+router = APIRouter(prefix="/auth", tags=["Authentication"], dependencies=[Depends(feature_guard("auth"))])
 
 # ============================================
 # DEPENDENCY: Get Current User

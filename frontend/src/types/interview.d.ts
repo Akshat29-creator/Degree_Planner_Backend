@@ -1,6 +1,6 @@
 // Interview Types for Degree Planner AI Interview Feature
 
-interface InterviewFeedback {
+export interface InterviewFeedback {
     id: string;
     interviewId: string;
     totalScore: number;
@@ -15,7 +15,7 @@ interface InterviewFeedback {
     createdAt: string;
 }
 
-interface Interview {
+export interface Interview {
     id: string;
     role: string;
     level: string;
@@ -27,14 +27,14 @@ interface Interview {
     finalized: boolean;
 }
 
-interface CreateFeedbackParams {
+export interface CreateFeedbackParams {
     interviewId: string;
     odId: string;
     transcript: { role: string; content: string }[];
     feedbackId?: string;
 }
 
-interface InterviewCardProps {
+export interface InterviewCardProps {
     interviewId?: string;
     odId?: string;
     role: string;
@@ -43,7 +43,7 @@ interface InterviewCardProps {
     createdAt?: string;
 }
 
-interface AgentProps {
+export interface AgentProps {
     userName: string;
     odId?: string;
     interviewId?: string;
@@ -52,21 +52,21 @@ interface AgentProps {
     questions?: string[];
 }
 
-interface InterviewRouteParams {
+export interface InterviewRouteParams {
     params: Promise<Record<string, string>>;
     searchParams: Promise<Record<string, string>>;
 }
 
-interface GetFeedbackByInterviewIdParams {
+export interface GetFeedbackByInterviewIdParams {
     interviewId: string;
     odId: string;
 }
 
-interface GetLatestInterviewsParams {
+export interface GetLatestInterviewsParams {
     odId: string;
     limit?: number;
 }
 
-interface TechIconProps {
+export interface TechIconProps {
     techStack: string[];
 }

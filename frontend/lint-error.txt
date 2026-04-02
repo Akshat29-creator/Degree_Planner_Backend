@@ -1,0 +1,380 @@
+
+> frontend@0.1.0 lint
+> eslint
+
+
+C:\Users\aksha\Downloads\degree_planner_agent\frontend\src\app\about\page.tsx
+   4:10   warning  'Badge' is defined but never used                                @typescript-eslint/no-unused-vars
+   6:8    warning  'Link' is defined but never used                                 @typescript-eslint/no-unused-vars
+   7:8    warning  'Image' is defined but never used                                @typescript-eslint/no-unused-vars
+  52:152  error    `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`  react/no-unescaped-entities
+  84:52   error    `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`  react/no-unescaped-entities
+  84:74   error    `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`  react/no-unescaped-entities
+  84:208  error    `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`  react/no-unescaped-entities
+
+C:\Users\aksha\Downloads\degree_planner_agent\frontend\src\app\advisor\page.tsx
+    14:5   warning  'Loader2' is defined but never used                                                                                  @typescript-eslint/no-unused-vars
+    21:5   warning  'Database' is defined but never used                                                                                 @typescript-eslint/no-unused-vars
+    23:5   warning  'Cloud' is defined but never used                                                                                    @typescript-eslint/no-unused-vars
+    29:5   warning  'CheckCircle2' is defined but never used                                                                             @typescript-eslint/no-unused-vars
+    30:5   warning  'ChevronDown' is defined but never used                                                                              @typescript-eslint/no-unused-vars
+   723:12  warning  'showMore' is assigned a value but never used                                                                        @typescript-eslint/no-unused-vars
+   723:22  warning  'setShowMore' is assigned a value but never used                                                                     @typescript-eslint/no-unused-vars
+   746:13  error    'progress' is never reassigned. Use 'const' instead                                                                  prefer-const
+   746:13  warning  'progress' is assigned a value but never used                                                                        @typescript-eslint/no-unused-vars
+   886:48  warning  'i' is defined but never used                                                                                        @typescript-eslint/no-unused-vars
+   944:17  error    Use "@ts-expect-error" instead of "@ts-ignore", as "@ts-ignore" will do nothing if the following line is error-free  @typescript-eslint/ban-ts-comment
+   971:13  error    Use "@ts-expect-error" instead of "@ts-ignore", as "@ts-ignore" will do nothing if the following line is error-free  @typescript-eslint/ban-ts-comment
+  1043:13  error    Use "@ts-expect-error" instead of "@ts-ignore", as "@ts-ignore" will do nothing if the following line is error-free  @typescript-eslint/ban-ts-comment
+  1088:13  error    Use "@ts-expect-error" instead of "@ts-ignore", as "@ts-ignore" will do nothing if the following line is error-free  @typescript-eslint/ban-ts-comment
+  1116:17  error    Use "@ts-expect-error" instead of "@ts-ignore", as "@ts-ignore" will do nothing if the following line is error-free  @typescript-eslint/ban-ts-comment
+  1170:13  error    Use "@ts-expect-error" instead of "@ts-ignore", as "@ts-ignore" will do nothing if the following line is error-free  @typescript-eslint/ban-ts-comment
+  1248:17  error    Use "@ts-expect-error" instead of "@ts-ignore", as "@ts-ignore" will do nothing if the following line is error-free  @typescript-eslint/ban-ts-comment
+  1270:17  error    Use "@ts-expect-error" instead of "@ts-ignore", as "@ts-ignore" will do nothing if the following line is error-free  @typescript-eslint/ban-ts-comment
+  1309:17  error    Use "@ts-expect-error" instead of "@ts-ignore", as "@ts-ignore" will do nothing if the following line is error-free  @typescript-eslint/ban-ts-comment
+  1343:13  error    Use "@ts-expect-error" instead of "@ts-ignore", as "@ts-ignore" will do nothing if the following line is error-free  @typescript-eslint/ban-ts-comment
+  1429:52  error    `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`                                                      react/no-unescaped-entities
+
+C:\Users\aksha\Downloads\degree_planner_agent\frontend\src\app\blog\page.tsx
+  4:10  warning  'Badge' is defined but never used     @typescript-eslint/no-unused-vars
+  5:8   warning  'Link' is defined but never used      @typescript-eslint/no-unused-vars
+  6:10  warning  'Calendar' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Users\aksha\Downloads\degree_planner_agent\frontend\src\app\buddy\page.tsx
+    7:10   warning  'Input' is defined but never used                                @typescript-eslint/no-unused-vars
+   17:5    warning  'ArrowRight' is defined but never used                           @typescript-eslint/no-unused-vars
+   21:5    warning  'User' is defined but never used                                 @typescript-eslint/no-unused-vars
+   25:5    warning  'CalendarDays' is defined but never used                         @typescript-eslint/no-unused-vars
+   28:5    warning  'X' is defined but never used                                    @typescript-eslint/no-unused-vars
+   36:55   error    Unexpected any. Specify a different type                         @typescript-eslint/no-explicit-any
+  340:138  error    `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`  react/no-unescaped-entities
+  345:125  error    `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`  react/no-unescaped-entities
+  345:156  error    `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`  react/no-unescaped-entities
+
+C:\Users\aksha\Downloads\degree_planner_agent\frontend\src\app\careers\page.tsx
+   4:10   warning  'Badge' is defined but never used                                @typescript-eslint/no-unused-vars
+  41:23   error    `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`  react/no-unescaped-entities
+  41:110  error    `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`  react/no-unescaped-entities
+  41:150  error    `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`  react/no-unescaped-entities
+
+C:\Users\aksha\Downloads\degree_planner_agent\frontend\src\app\contact\page.tsx
+   40:28   error  `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`  react/no-unescaped-entities
+   47:119  error  `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`  react/no-unescaped-entities
+  101:33   error  `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`  react/no-unescaped-entities
+  101:141  error  `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`  react/no-unescaped-entities
+  123:69   error  `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`  react/no-unescaped-entities
+
+C:\Users\aksha\Downloads\degree_planner_agent\frontend\src\app\cookies\page.tsx
+  23:106  error  `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`  react/no-unescaped-entities
+  46:75   error  `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`  react/no-unescaped-entities
+  59:36   error  `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`  react/no-unescaped-entities
+  64:72   error  `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`  react/no-unescaped-entities
+
+C:\Users\aksha\Downloads\degree_planner_agent\frontend\src\app\dashboard\page.tsx
+   6:10  warning  'useEffect' is defined but never used        @typescript-eslint/no-unused-vars
+  11:10  warning  'Button' is defined but never used           @typescript-eslint/no-unused-vars
+  19:11  warning  'router' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+C:\Users\aksha\Downloads\degree_planner_agent\frontend\src\app\features\page.tsx
+   24:53  error  Unexpected any. Specify a different type                         @typescript-eslint/no-explicit-any
+  137:78  error  `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`  react/no-unescaped-entities
+
+C:\Users\aksha\Downloads\degree_planner_agent\frontend\src\app\graph\page.tsx
+  26:5  warning  'Info' is defined but never used           @typescript-eslint/no-unused-vars
+  30:5  warning  'BookOpen' is defined but never used       @typescript-eslint/no-unused-vars
+  34:5  warning  'AlertTriangle' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Users\aksha\Downloads\degree_planner_agent\frontend\src\app\history\page.tsx
+   8:5   warning  'Clock' is defined but never used          @typescript-eslint/no-unused-vars
+   8:31  warning  'GraduationCap' is defined but never used  @typescript-eslint/no-unused-vars
+   8:46  warning  'Target' is defined but never used         @typescript-eslint/no-unused-vars
+   9:13  warning  'ChevronRight' is defined but never used   @typescript-eslint/no-unused-vars
+  82:52  error    Unexpected any. Specify a different type   @typescript-eslint/no-explicit-any
+  86:66  error    Unexpected any. Specify a different type   @typescript-eslint/no-explicit-any
+  90:18  error    Unexpected any. Specify a different type   @typescript-eslint/no-explicit-any
+
+C:\Users\aksha\Downloads\degree_planner_agent\frontend\src\app\interview\[id]\feedback\page.tsx
+  8:48   warning  'Home' is defined but never used  @typescript-eslint/no-unused-vars
+  8:147  warning  'Bot' is defined but never used   @typescript-eslint/no-unused-vars
+
+C:\Users\aksha\Downloads\degree_planner_agent\frontend\src\app\interview\[id]\page.tsx
+   5:8  warning  'Image' is defined but never used             @typescript-eslint/no-unused-vars
+  11:8  warning  'DisplayTechIcons' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Users\aksha\Downloads\degree_planner_agent\frontend\src\app\interview\generate\page.tsx
+  19:56  error  `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`  react/no-unescaped-entities
+  19:67  error  `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`  react/no-unescaped-entities
+  43:37  error  `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`  react/no-unescaped-entities
+  43:48  error  `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`  react/no-unescaped-entities
+
+C:\Users\aksha\Downloads\degree_planner_agent\frontend\src\app\interview\page.tsx
+    3:8   warning  'Link' is defined but never used                                 @typescript-eslint/no-unused-vars
+   11:85  warning  'MessageSquare' is defined but never used                        @typescript-eslint/no-unused-vars
+   29:12  warning  'latestInterviews' is assigned a value but never used            @typescript-eslint/no-unused-vars
+  355:46  error    `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`  react/no-unescaped-entities
+  355:57  error    `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`  react/no-unescaped-entities
+
+C:\Users\aksha\Downloads\degree_planner_agent\frontend\src\app\layout.tsx
+  4:10  warning  'Providers' is defined but never used   @typescript-eslint/no-unused-vars
+  6:10  warning  'DemoBanner' is defined but never used  @typescript-eslint/no-unused-vars
+
+C:\Users\aksha\Downloads\degree_planner_agent\frontend\src\app\login\page.tsx
+   33:23  error  Unexpected any. Specify a different type                         @typescript-eslint/no-explicit-any
+  155:64  error  `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`  react/no-unescaped-entities
+
+C:\Users\aksha\Downloads\degree_planner_agent\frontend\src\app\page.tsx
+   10:3   warning  'useSpring' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        @typescript-eslint/no-unused-vars
+   20:3   warning  'ArrowRight' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       @typescript-eslint/no-unused-vars
+   23:3   warning  'GraduationCap' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    @typescript-eslint/no-unused-vars
+   26:3   warning  'Clock' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            @typescript-eslint/no-unused-vars
+   29:3   warning  'Github' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           @typescript-eslint/no-unused-vars
+   30:3   warning  'Twitter' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          @typescript-eslint/no-unused-vars
+   31:3   warning  'Linkedin' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         @typescript-eslint/no-unused-vars
+  127:57  error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     @typescript-eslint/no-explicit-any
+  179:24  error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     @typescript-eslint/no-explicit-any
+  213:38  error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     @typescript-eslint/no-explicit-any
+  215:5   error    Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+C:\Users\aksha\Downloads\degree_planner_agent\frontend\src\app\page.tsx:215:5
+  213 |   const [stars, setStars] = useState<any[]>([]);
+  214 |   useEffect(() => {
+> 215 |     setStars([...Array(200)].map(() => ({
+      |     ^^^^^^^^ Avoid calling setState() directly within an effect
+  216 |       top: `${Math.random() * 100}%`,
+  217 |       left: `${Math.random() * 100}%`,
+  218 |       duration: Math.random() * 3 + 2,  react-hooks/set-state-in-effect
+
+C:\Users\aksha\Downloads\degree_planner_agent\frontend\src\app\performance\page.tsx
+    8:5    warning  'BarChart' is defined but never used             @typescript-eslint/no-unused-vars
+    8:15   warning  'Bar' is defined but never used                  @typescript-eslint/no-unused-vars
+    8:20   warning  'Legend' is defined but never used               @typescript-eslint/no-unused-vars
+   16:10   warning  'formatDistanceToNow' is defined but never used  @typescript-eslint/no-unused-vars
+   48:22   warning  'err' is defined but never used                  @typescript-eslint/no-unused-vars
+  297:110  error    Unexpected any. Specify a different type         @typescript-eslint/no-explicit-any
+
+C:\Users\aksha\Downloads\degree_planner_agent\frontend\src\app\planner\VisualRoadmap.tsx
+    6:15  warning  'Calendar' is defined but never used             @typescript-eslint/no-unused-vars
+    9:51  warning  'courses' is defined but never used              @typescript-eslint/no-unused-vars
+   74:27  warning  'isEvenYear' is assigned a value but never used  @typescript-eslint/no-unused-vars
+  101:43  warning  'isRight' is assigned a value but never used     @typescript-eslint/no-unused-vars
+
+C:\Users\aksha\Downloads\degree_planner_agent\frontend\src\app\planner\page.tsx
+     6:37   warning  'exportPlanICS' is defined but never used                                                                            @typescript-eslint/no-unused-vars
+     7:15   warning  'PlanResponse' is defined but never used                                                                             @typescript-eslint/no-unused-vars
+    25:5    warning  'ChevronDown' is defined but never used                                                                              @typescript-eslint/no-unused-vars
+    36:5    warning  'Map' is defined but never used                                                                                      @typescript-eslint/no-unused-vars
+    41:5    warning  'Trophy' is defined but never used                                                                                   @typescript-eslint/no-unused-vars
+   143:27   error    `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`                                                      react/no-unescaped-entities
+   524:11   warning  'generateCoursesForDegree' is assigned a value but never used                                                        @typescript-eslint/no-unused-vars
+   676:57   error    Unexpected any. Specify a different type                                                                             @typescript-eslint/no-explicit-any
+   681:64   error    Unexpected any. Specify a different type                                                                             @typescript-eslint/no-explicit-any
+   712:59   error    Unexpected any. Specify a different type                                                                             @typescript-eslint/no-explicit-any
+   713:61   error    Unexpected any. Specify a different type                                                                             @typescript-eslint/no-explicit-any
+   736:59   error    Unexpected any. Specify a different type                                                                             @typescript-eslint/no-explicit-any
+   751:62   error    Unexpected any. Specify a different type                                                                             @typescript-eslint/no-explicit-any
+   775:11   warning  'canProceedStep3' is assigned a value but never used                                                                 @typescript-eslint/no-unused-vars
+   778:11   warning  'getGraduationYear' is assigned a value but never used                                                               @typescript-eslint/no-unused-vars
+   996:39   error    `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`                                                      react/no-unescaped-entities
+  1095:85   error    `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`                                                      react/no-unescaped-entities
+  1228:63   error    Unexpected any. Specify a different type                                                                             @typescript-eslint/no-explicit-any
+  1399:17   error    Use "@ts-expect-error" instead of "@ts-ignore", as "@ts-ignore" will do nothing if the following line is error-free  @typescript-eslint/ban-ts-comment
+  1531:76   error    Unexpected any. Specify a different type                                                                             @typescript-eslint/no-explicit-any
+  1607:91   warning  'semIndex' is defined but never used                                                                                 @typescript-eslint/no-unused-vars
+  1664:17   error    Use "@ts-expect-error" instead of "@ts-ignore", as "@ts-ignore" will do nothing if the following line is error-free  @typescript-eslint/ban-ts-comment
+  1707:17   error    Use "@ts-expect-error" instead of "@ts-ignore", as "@ts-ignore" will do nothing if the following line is error-free  @typescript-eslint/ban-ts-comment
+  1832:86   warning  'idx' is defined but never used                                                                                      @typescript-eslint/no-unused-vars
+  2412:61   error    `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`                                                      react/no-unescaped-entities
+  2412:89   error    `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`                                                      react/no-unescaped-entities
+  2662:73   error    `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`                                                      react/no-unescaped-entities
+  2662:169  error    `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`                                                      react/no-unescaped-entities
+
+C:\Users\aksha\Downloads\degree_planner_agent\frontend\src\app\pricing\page.tsx
+  4:20  warning  'Sparkles' is defined but never used  @typescript-eslint/no-unused-vars
+  8:10  warning  'Navbar' is defined but never used    @typescript-eslint/no-unused-vars
+
+C:\Users\aksha\Downloads\degree_planner_agent\frontend\src\app\privacy\page.tsx
+   3:10   warning  'motion' is defined but never used                               @typescript-eslint/no-unused-vars
+   4:37   warning  'UserCheck' is defined but never used                            @typescript-eslint/no-unused-vars
+  44:119  error    `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`  react/no-unescaped-entities
+  46:49   error    `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`  react/no-unescaped-entities
+  46:58   error    `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`  react/no-unescaped-entities
+  68:106  error    `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`  react/no-unescaped-entities
+  68:123  error    `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`  react/no-unescaped-entities
+
+C:\Users\aksha\Downloads\degree_planner_agent\frontend\src\app\profile\page.tsx
+    5:63  warning  'ProfileResponse' is defined but never used                                                                     @typescript-eslint/no-unused-vars
+    7:10  warning  'Input' is defined but never used                                                                               @typescript-eslint/no-unused-vars
+   21:5   warning  'Briefcase' is defined but never used                                                                           @typescript-eslint/no-unused-vars
+   23:5   warning  'Award' is defined but never used                                                                               @typescript-eslint/no-unused-vars
+   25:5   warning  'MessageSquare' is defined but never used                                                                       @typescript-eslint/no-unused-vars
+   29:5   warning  'AlertTriangle' is defined but never used                                                                       @typescript-eslint/no-unused-vars
+   30:5   warning  'Calendar' is defined but never used                                                                            @typescript-eslint/no-unused-vars
+   31:5   warning  'Brain' is defined but never used                                                                               @typescript-eslint/no-unused-vars
+   58:8   warning  React Hook useEffect has a missing dependency: 'loadProfile'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+  127:32  warning  '_' is assigned a value but never used                                                                          @typescript-eslint/no-unused-vars
+  133:41  error    Unexpected any. Specify a different type                                                                        @typescript-eslint/no-explicit-any
+  135:41  error    Unexpected any. Specify a different type                                                                        @typescript-eslint/no-explicit-any
+  137:41  error    Unexpected any. Specify a different type                                                                        @typescript-eslint/no-explicit-any
+
+C:\Users\aksha\Downloads\degree_planner_agent\frontend\src\app\register\page.tsx
+  33:23  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\aksha\Downloads\degree_planner_agent\frontend\src\app\revision\page.tsx
+   24:5   warning  'ChevronRight' is defined but never used                         @typescript-eslint/no-unused-vars
+  153:84  error    Unexpected any. Specify a different type                         @typescript-eslint/no-explicit-any
+  259:23  error    Unexpected any. Specify a different type                         @typescript-eslint/no-explicit-any
+  267:11  warning  'handleExplainTopic' is assigned a value but never used          @typescript-eslint/no-unused-vars
+  566:82  error    `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`  react/no-unescaped-entities
+  566:98  error    `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`  react/no-unescaped-entities
+
+C:\Users\aksha\Downloads\degree_planner_agent\frontend\src\app\study\page.tsx
+    3:20  warning  'useRef' is defined but never used                               @typescript-eslint/no-unused-vars
+    8:10  warning  'Input' is defined but never used                                @typescript-eslint/no-unused-vars
+   15:43  warning  'LogOut' is defined but never used                               @typescript-eslint/no-unused-vars
+   16:47  warning  'ChevronLeft' is defined but never used                          @typescript-eslint/no-unused-vars
+  105:23  error    Unexpected any. Specify a different type                         @typescript-eslint/no-explicit-any
+  152:23  error    Unexpected any. Specify a different type                         @typescript-eslint/no-explicit-any
+  290:80  error    `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`  react/no-unescaped-entities
+  475:88  error    `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`  react/no-unescaped-entities
+
+C:\Users\aksha\Downloads\degree_planner_agent\frontend\src\app\terms\page.tsx
+  36:72  error  `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`  react/no-unescaped-entities
+  36:84  error  `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`  react/no-unescaped-entities
+  66:33  error  `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`  react/no-unescaped-entities
+  66:48  error  `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`  react/no-unescaped-entities
+  66:54  error  `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`  react/no-unescaped-entities
+  66:67  error  `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`  react/no-unescaped-entities
+  70:33  error  `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`  react/no-unescaped-entities
+  70:38  error  `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`  react/no-unescaped-entities
+  70:43  error  `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`  react/no-unescaped-entities
+  70:48  error  `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`  react/no-unescaped-entities
+
+C:\Users\aksha\Downloads\degree_planner_agent\frontend\src\components\auth\TestimonialTicker.tsx
+  57:25  error  `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`  react/no-unescaped-entities
+  57:41  error  `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`  react/no-unescaped-entities
+
+C:\Users\aksha\Downloads\degree_planner_agent\frontend\src\components\data-upload.tsx
+  29:11  warning  'setValidationResult' is assigned a value but never used  @typescript-eslint/no-unused-vars
+  65:32  error    Unexpected any. Specify a different type                  @typescript-eslint/no-explicit-any
+
+C:\Users\aksha\Downloads\degree_planner_agent\frontend\src\components\interview\Agent.tsx
+    7:10  warning  'Mic' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           @typescript-eslint/no-unused-vars
+    7:15  warning  'MicOff' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        @typescript-eslint/no-unused-vars
+    7:56  warning  'Cpu' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           @typescript-eslint/no-unused-vars
+   62:37  error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  @typescript-eslint/no-explicit-any
+  107:13  error    Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+C:\Users\aksha\Downloads\degree_planner_agent\frontend\src\components\interview\Agent.tsx:107:13
+  105 |     useEffect(() => {
+  106 |         if (messages.length > 0) {
+> 107 |             setLastMessage(messages[messages.length - 1].content);
+      |             ^^^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  108 |         }
+  109 |
+  110 |         const handleGenerateFeedback = async (msgs: SavedMessage[]) => {  react-hooks/set-state-in-effect
+  290:37  error    `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           react/no-unescaped-entities
+  290:51  error    `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           react/no-unescaped-entities
+
+C:\Users\aksha\Downloads\degree_planner_agent\frontend\src\components\interview\InterviewCard.tsx
+  64:45  error  Error: Cannot call impure function during render
+
+`Date.now` is an impure function. Calling an impure function can produce unstable results that update unpredictably when the component happens to re-render. (https://react.dev/reference/rules/components-and-hooks-must-be-pure#components-and-hooks-must-be-idempotent).
+
+C:\Users\aksha\Downloads\degree_planner_agent\frontend\src\components\interview\InterviewCard.tsx:64:45
+  62 |
+  63 |     const formattedDate = dayjs(
+> 64 |         feedback?.createdAt || createdAt || Date.now()
+     |                                             ^^^^^^^^^^ Cannot call impure function
+  65 |     ).format("MMM D, YYYY");
+  66 |
+  67 |     return (  react-hooks/purity
+
+C:\Users\aksha\Downloads\degree_planner_agent\frontend\src\components\layout\navbar.tsx
+   7:5   warning  'GraduationCap' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               @typescript-eslint/no-unused-vars
+  21:5   warning  'ChevronUp' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   @typescript-eslint/no-unused-vars
+  64:23  error    Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+C:\Users\aksha\Downloads\degree_planner_agent\frontend\src\components\layout\navbar.tsx:64:23
+  62 |
+  63 |     // Close sheet when route changes
+> 64 |     useEffect(() => { setMoreOpen(false); }, [pathname]);
+     |                       ^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  65 |
+  66 |     if (isLoading) return null;
+  67 |     if (!user)     return null;  react-hooks/set-state-in-effect
+
+C:\Users\aksha\Downloads\degree_planner_agent\frontend\src\components\manual-entry-form.tsx
+   5:10  warning  'useAppStore' is defined but never used    @typescript-eslint/no-unused-vars
+  10:5   warning  'AlertTriangle' is defined but never used  @typescript-eslint/no-unused-vars
+  11:5   warning  'CheckCircle2' is defined but never used   @typescript-eslint/no-unused-vars
+  12:5   warning  'Calendar' is defined but never used       @typescript-eslint/no-unused-vars
+  14:5   warning  'GraduationCap' is defined but never used  @typescript-eslint/no-unused-vars
+  25:10  warning  'cn' is defined but never used             @typescript-eslint/no-unused-vars
+  28:34  error    Unexpected any. Specify a different type   @typescript-eslint/no-explicit-any
+  54:76  error    Unexpected any. Specify a different type   @typescript-eslint/no-explicit-any
+
+C:\Users\aksha\Downloads\degree_planner_agent\frontend\src\components\revision\PracticePanel.tsx
+    4:18  warning  'AnimatePresence' is defined but never used  @typescript-eslint/no-unused-vars
+    7:10  warning  'Input' is defined but never used            @typescript-eslint/no-unused-vars
+   70:23  error    Unexpected any. Specify a different type     @typescript-eslint/no-explicit-any
+  100:23  error    Unexpected any. Specify a different type     @typescript-eslint/no-explicit-any
+
+C:\Users\aksha\Downloads\degree_planner_agent\frontend\src\components\ui\textarea.tsx
+  5:18  error  An interface declaring no members is equivalent to its supertype  @typescript-eslint/no-empty-object-type
+
+C:\Users\aksha\Downloads\degree_planner_agent\frontend\src\context\auth-context.tsx
+   46:8   warning  React Hook useEffect has a missing dependency: 'handleRedirectResult'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+  157:25  error    Unexpected any. Specify a different type                                                                                 @typescript-eslint/no-explicit-any
+  173:53  error    Unexpected any. Specify a different type                                                                                 @typescript-eslint/no-explicit-any
+  189:53  error    Unexpected any. Specify a different type                                                                                 @typescript-eslint/no-explicit-any
+
+C:\Users\aksha\Downloads\degree_planner_agent\frontend\src\firebase\admin.ts
+   1:40  warning  'App' is defined but never used           @typescript-eslint/no-unused-vars
+  51:27  error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  63:18  error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+C:\Users\aksha\Downloads\degree_planner_agent\frontend\src\lib\actions\interview.action.ts
+    3:10  warning  'generateObject' is defined but never used  @typescript-eslint/no-unused-vars
+    4:10  warning  'google' is defined but never used          @typescript-eslint/no-unused-vars
+    7:10  warning  'feedbackSchema' is defined but never used  @typescript-eslint/no-unused-vars
+  152:27  error    Unexpected any. Specify a different type    @typescript-eslint/no-explicit-any
+  164:25  error    Unexpected any. Specify a different type    @typescript-eslint/no-explicit-any
+  193:90  error    Unexpected any. Specify a different type    @typescript-eslint/no-explicit-any
+  203:25  error    Unexpected any. Specify a different type    @typescript-eslint/no-explicit-any
+  253:21  error    Unexpected any. Specify a different type    @typescript-eslint/no-explicit-any
+  319:24  error    Unexpected any. Specify a different type    @typescript-eslint/no-explicit-any
+  349:24  error    Unexpected any. Specify a different type    @typescript-eslint/no-explicit-any
+  449:21  error    Unexpected any. Specify a different type    @typescript-eslint/no-explicit-any
+  486:21  error    Unexpected any. Specify a different type    @typescript-eslint/no-explicit-any
+
+C:\Users\aksha\Downloads\degree_planner_agent\frontend\src\lib\api.ts
+  283:18  error  An interface declaring no members is equivalent to its supertype  @typescript-eslint/no-empty-object-type
+  669:79  error  Unexpected any. Specify a different type                          @typescript-eslint/no-explicit-any
+  963:21  error  Unexpected any. Specify a different type                          @typescript-eslint/no-explicit-any
+  964:20  error  Unexpected any. Specify a different type                          @typescript-eslint/no-explicit-any
+
+C:\Users\aksha\Downloads\degree_planner_agent\frontend\src\lib\store.ts
+  164:22  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  165:35  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+✖ 234 problems (129 errors, 105 warnings)
+  1 error and 0 warnings potentially fixable with the `--fix` option.
+

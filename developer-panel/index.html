@@ -1,0 +1,795 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Developer Options Panel — Degree Planner</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --bg-primary: #05050f;
+      --bg-card: #0d0d1a;
+      --bg-card-hover: #12122a;
+      --border: rgba(255,255,255,0.07);
+      --border-active: rgba(100,220,200,0.4);
+      --accent: #14b8a6;
+      --accent-secondary: #7c3aed;
+      --text-primary: #f1f5f9;
+      --text-muted: #64748b;
+      --text-dim: #374151;
+      --green: #22c55e;
+      --red: #ef4444;
+      --amber: #f59e0b;
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* Ambient BG */
+    body::before {
+      content: '';
+      position: fixed;
+      top: -200px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 800px;
+      height: 800px;
+      background: radial-gradient(ellipse, rgba(20,184,166,0.07) 0%, transparent 70%);
+      pointer-events: none;
+    }
+
+    /* Header */
+    .header {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: rgba(5,5,15,0.85);
+      backdrop-filter: blur(20px);
+      border-bottom: 1px solid var(--border);
+      padding: 16px 32px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .logo-icon {
+      width: 36px;
+      height: 36px;
+      background: linear-gradient(135deg, #14b8a6, #7c3aed);
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+    }
+
+    .header-title {
+      font-size: 18px;
+      font-weight: 700;
+      background: linear-gradient(135deg, #f1f5f9, #94a3b8);
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .header-subtitle {
+      font-size: 11px;
+      color: var(--text-muted);
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    .status-badge {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 14px;
+      border-radius: 100px;
+      font-size: 12px;
+      font-weight: 500;
+      border: 1px solid;
+    }
+
+    .status-badge.connected {
+      background: rgba(34,197,94,0.1);
+      border-color: rgba(34,197,94,0.3);
+      color: #4ade80;
+    }
+
+    .status-badge.error {
+      background: rgba(239,68,68,0.1);
+      border-color: rgba(239,68,68,0.3);
+      color: #f87171;
+    }
+
+    .status-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: currentColor;
+      animation: pulse-ring 2s infinite;
+    }
+
+    @keyframes pulse-ring {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+
+    /* Main Layout */
+    .main {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 40px 24px;
+    }
+
+    /* Section Header */
+    .section-label {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      margin-bottom: 16px;
+      padding-left: 4px;
+    }
+
+    /* Action Bar */
+    .action-bar {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 40px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    .btn {
+      padding: 10px 20px;
+      border-radius: 10px;
+      font-size: 13px;
+      font-weight: 600;
+      border: 1px solid transparent;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-family: 'Inter', sans-serif;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #14b8a6, #0d9488);
+      color: #fff;
+      box-shadow: 0 0 20px rgba(20,184,166,0.3);
+    }
+    .btn-primary:hover {
+      box-shadow: 0 0 30px rgba(20,184,166,0.5);
+      transform: translateY(-1px);
+    }
+
+    .btn-secondary {
+      background: rgba(255,255,255,0.05);
+      border-color: var(--border);
+      color: var(--text-primary);
+    }
+    .btn-secondary:hover {
+      background: rgba(255,255,255,0.08);
+    }
+
+    .btn-danger {
+      background: rgba(239,68,68,0.1);
+      border-color: rgba(239,68,68,0.3);
+      color: #f87171;
+    }
+    .btn-danger:hover {
+      background: rgba(239,68,68,0.2);
+    }
+
+    .btn-success {
+      background: rgba(34,197,94,0.1);
+      border-color: rgba(34,197,94,0.3);
+      color: #4ade80;
+    }
+    .btn-success:hover {
+      background: rgba(34,197,94,0.2);
+    }
+
+    .btn-refresh {
+      margin-left: auto;
+      background: transparent;
+      border-color: var(--border);
+      color: var(--text-muted);
+    }
+    .btn-refresh:hover {
+      color: var(--text-primary);
+      border-color: var(--border-active);
+    }
+
+    /* Flags Grid */
+    .flags-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 12px;
+      margin-bottom: 40px;
+    }
+
+    .flag-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 16px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      transition: all 0.25s ease;
+      cursor: pointer;
+    }
+
+    .flag-card:hover {
+      border-color: rgba(100,220,200,0.2);
+      background: var(--bg-card-hover);
+      transform: translateY(-1px);
+      box-shadow: 0 4px 24px rgba(0,0,0,0.4);
+    }
+
+    .flag-card.disabled {
+      opacity: 0.7;
+    }
+
+    .flag-info {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      min-width: 0;
+    }
+
+    .flag-name {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-primary);
+      font-family: 'JetBrains Mono', monospace;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .flag-label {
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    .flag-category-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+
+    /* Toggle Switch */
+    .toggle {
+      position: relative;
+      width: 48px;
+      height: 26px;
+      flex-shrink: 0;
+    }
+
+    .toggle input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+      position: absolute;
+    }
+
+    .toggle-track {
+      position: absolute;
+      inset: 0;
+      border-radius: 100px;
+      background: #1e293b;
+      border: 1px solid rgba(255,255,255,0.1);
+      transition: all 0.3s cubic-bezier(0.4,0,0.2,1);
+      cursor: pointer;
+    }
+
+    .toggle-track::after {
+      content: '';
+      position: absolute;
+      top: 3px;
+      left: 3px;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: #64748b;
+      transition: all 0.3s cubic-bezier(0.4,0,0.2,1);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+    }
+
+    .toggle input:checked + .toggle-track {
+      background: linear-gradient(135deg, #14b8a6, #0d9488);
+      border-color: rgba(20,184,166,0.5);
+      box-shadow: 0 0 16px rgba(20,184,166,0.4);
+    }
+
+    .toggle input:checked + .toggle-track::after {
+      left: calc(100% - 21px);
+      background: #fff;
+    }
+
+    /* Category Section */
+    .category-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 12px;
+      margin-top: 32px;
+    }
+
+    .category-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+    }
+
+    .category-title {
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      color: var(--text-muted);
+    }
+
+    .category-count {
+      font-size: 10px;
+      color: var(--text-dim);
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    /* Notification Toast */
+    #toast {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      z-index: 1000;
+      min-width: 260px;
+      padding: 14px 20px;
+      border-radius: 12px;
+      font-size: 13px;
+      font-weight: 500;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      transform: translateY(80px);
+      opacity: 0;
+      transition: all 0.3s cubic-bezier(0.4,0,0.2,1);
+    }
+
+    #toast.show {
+      transform: translateY(0);
+      opacity: 1;
+    }
+
+    #toast.success {
+      background: rgba(15,25,20,0.95);
+      border: 1px solid rgba(34,197,94,0.4);
+      color: #4ade80;
+      backdrop-filter: blur(10px);
+    }
+
+    #toast.error {
+      background: rgba(25,10,10,0.95);
+      border: 1px solid rgba(239,68,68,0.4);
+      color: #f87171;
+      backdrop-filter: blur(10px);
+    }
+
+    /* Spinner */
+    .spinner {
+      display: none;
+      width: 16px;
+      height: 16px;
+      border: 2px solid rgba(255,255,255,0.2);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    /* Loading overlay */
+    .loading-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(5,5,15,0.7);
+      backdrop-filter: blur(4px);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 200;
+    }
+
+    .loading-overlay.show {
+      display: flex;
+    }
+
+    .loading-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-active);
+      border-radius: 20px;
+      padding: 40px;
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .loading-spinner {
+      width: 40px;
+      height: 40px;
+      border: 3px solid rgba(20,184,166,0.2);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+
+    /* Summary stats */
+    .stats-row {
+      display: flex;
+      gap: 16px;
+      margin-bottom: 32px;
+      flex-wrap: wrap;
+    }
+
+    .stat-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 16px 24px;
+      flex: 1;
+      min-width: 140px;
+      text-align: center;
+    }
+
+    .stat-value {
+      font-size: 28px;
+      font-weight: 800;
+      font-family: 'JetBrains Mono', monospace;
+      line-height: 1;
+      margin-bottom: 4px;
+    }
+
+    .stat-label {
+      font-size: 11px;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .stat-value.green { color: var(--green); }
+    .stat-value.red { color: var(--red); }
+    .stat-value.amber { color: var(--amber); }
+
+    /* Responsive */
+    @media (max-width: 640px) {
+      .header { padding: 12px 16px; }
+      .main { padding: 24px 16px; }
+      .flags-grid { grid-template-columns: 1fr; }
+      .action-bar { flex-direction: column; }
+      .btn-refresh { margin-left: 0; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- Loading Overlay -->
+<div class="loading-overlay" id="loadingOverlay">
+  <div class="loading-card">
+    <div class="loading-spinner"></div>
+    <p style="color: var(--text-muted); font-size: 14px;">Saving changes...</p>
+  </div>
+</div>
+
+<!-- Toast -->
+<div id="toast">
+  <span id="toast-icon">✓</span>
+  <span id="toast-msg"></span>
+</div>
+
+<!-- Header -->
+<header class="header">
+  <div class="header-left">
+    <div class="logo-icon">⚙️</div>
+    <div>
+      <div class="header-title">Developer Options</div>
+      <div class="header-subtitle">Degree Planner · localhost:3001</div>
+    </div>
+  </div>
+  <div style="display: flex; align-items: center; gap: 16px;">
+    <div id="connectionStatus" class="status-badge connected">
+      <span class="status-dot"></span>
+      <span>Connected</span>
+    </div>
+  </div>
+</header>
+
+<main class="main">
+
+  <!-- Action Bar -->
+  <div class="action-bar">
+    <button class="btn btn-success" onclick="enableAll()">✅ Enable All</button>
+    <button class="btn btn-danger" onclick="disableAll()">🚫 Disable All</button>
+    <button class="btn btn-primary" onclick="saveFlags()">💾 Save Changes</button>
+    <button class="btn btn-secondary" onclick="resetToDefaults()">↩ Reset Defaults</button>
+    <button class="btn btn-secondary btn-refresh" onclick="loadFlags()">🔄 Refresh</button>
+  </div>
+
+  <!-- Stats -->
+  <div class="stats-row">
+    <div class="stat-card">
+      <div class="stat-value green" id="statEnabled">—</div>
+      <div class="stat-label">Enabled</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value red" id="statDisabled">—</div>
+      <div class="stat-label">Disabled</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value amber" id="statTotal">—</div>
+      <div class="stat-label">Total Flags</div>
+    </div>
+  </div>
+
+  <!-- Flags will be rendered here -->
+  <div id="flagsContainer"></div>
+
+</main>
+
+<script>
+  const API_BASE = 'http://localhost:8000/api';
+  let flags = {};
+
+  const CATEGORIES = {
+    'Pages': {
+      color: '#7c3aed',
+      keys: ['page_dashboard','page_planner','page_advisor','page_buddy','page_revision','page_study_copilot','page_interview','page_history','page_graph','page_study','page_performance'],
+      labels: {
+        'page_dashboard': 'Dashboard',
+        'page_planner': 'Degree Planner',
+        'page_advisor': 'AI Career Advisor',
+        'page_buddy': 'Study Buddy',
+        'page_revision': 'Revision Engine',
+        'page_study_copilot': 'Study Copilot',
+        'page_interview': 'Interview Prep',
+        'page_history': 'Plan History',
+        'page_graph': 'Knowledge Graph',
+        'page_study': 'Study Planner',
+        'page_performance': 'Performance Matrix',
+      }
+    },
+    'Backend APIs': {
+      color: '#14b8a6',
+      keys: ['auth','courses','planner','ai_advisor','revision','history','manual_entry','practice','performance','assessment'],
+      labels: {
+        'auth': 'Authentication',
+        'courses': 'Course Data API',
+        'planner': 'Plan Generator API',
+        'ai_advisor': 'AI Advisor API',
+        'revision': 'Revision Engine API',
+        'history': 'Plan History API',
+        'manual_entry': 'Manual Entry API',
+        'practice': 'Practice Engine API',
+        'performance': 'Performance Analytics API',
+        'assessment': 'Assessment Engine API',
+      }
+    },
+    'Developer': {
+      color: '#f59e0b',
+      keys: ['debug_mode','mock_ai_responses'],
+      labels: {
+        'debug_mode': 'Debug Mode',
+        'mock_ai_responses': 'Mock AI Responses',
+      }
+    }
+  };
+
+  const DEFAULT_FLAGS = {
+    auth: true, courses: true, planner: true, ai_advisor: true,
+    revision: true, history: true, manual_entry: true, practice: true, performance: true, assessment: true,
+    page_dashboard: true, page_planner: true, page_advisor: true,
+    page_buddy: true, page_revision: true, page_study_copilot: true,
+    page_interview: true, page_history: true, page_graph: true, page_study: true, page_performance: true,
+    debug_mode: false, mock_ai_responses: false
+  };
+
+  async function loadFlags() {
+    try {
+      const res = await fetch(`${API_BASE}/flags`);
+      if (!res.ok) throw new Error('Failed to fetch');
+      flags = await res.json();
+      setStatus(true);
+    } catch (e) {
+      flags = { ...DEFAULT_FLAGS };
+      setStatus(false);
+      showToast('Cannot reach backend. Showing defaults.', 'error');
+    }
+    renderFlags();
+    updateStats();
+  }
+
+  function setStatus(connected) {
+    const el = document.getElementById('connectionStatus');
+    if (connected) {
+      el.className = 'status-badge connected';
+      el.innerHTML = '<span class="status-dot"></span><span>Connected</span>';
+    } else {
+      el.className = 'status-badge error';
+      el.innerHTML = '<span class="status-dot"></span><span>Offline</span>';
+    }
+  }
+
+  function renderFlags() {
+    const container = document.getElementById('flagsContainer');
+    container.innerHTML = '';
+
+    for (const [catName, cat] of Object.entries(CATEGORIES)) {
+      // Category header
+      const header = document.createElement('div');
+      header.className = 'category-header';
+      const activeCount = cat.keys.filter(k => flags[k] !== false).length;
+      header.innerHTML = `
+        <div class="category-dot" style="background:${cat.color}"></div>
+        <span class="category-title">${catName}</span>
+        <span class="category-count">${activeCount}/${cat.keys.length} enabled</span>
+      `;
+      container.appendChild(header);
+
+      // Grid
+      const grid = document.createElement('div');
+      grid.className = 'flags-grid';
+
+      cat.keys.forEach(key => {
+        if (!(key in flags)) return;
+        const isEnabled = flags[key] !== false;
+        const label = cat.labels[key] || key;
+
+        const card = document.createElement('div');
+        card.className = `flag-card ${!isEnabled ? 'disabled' : ''}`;
+        card.id = `card-${key}`;
+        card.onclick = (e) => {
+          if (e.target.closest('.toggle')) return;
+          const checkbox = document.getElementById(`toggle-${key}`);
+          checkbox.checked = !checkbox.checked;
+          onToggle(key, checkbox.checked);
+        };
+
+        card.innerHTML = `
+          <div style="display:flex;align-items:flex-start;gap:10px;min-width:0;">
+            <div class="flag-category-dot" style="background:${cat.color};margin-top:6px;"></div>
+            <div class="flag-info">
+              <div class="flag-name">${key}</div>
+              <div class="flag-label">${label}</div>
+            </div>
+          </div>
+          <label class="toggle" onclick="event.stopPropagation()">
+            <input type="checkbox" id="toggle-${key}" ${isEnabled ? 'checked' : ''} onchange="onToggle('${key}', this.checked)">
+            <div class="toggle-track"></div>
+          </label>
+        `;
+        grid.appendChild(card);
+      });
+
+      container.appendChild(grid);
+    }
+  }
+
+  function onToggle(key, enabled) {
+    flags[key] = enabled;
+    const card = document.getElementById(`card-${key}`);
+    if (enabled) {
+      card.classList.remove('disabled');
+    } else {
+      card.classList.add('disabled');
+    }
+    updateStats();
+    updateCategoryCount();
+  }
+
+  function updateStats() {
+    const total = Object.keys(flags).length;
+    const enabled = Object.values(flags).filter(v => v !== false).length;
+    const disabled = total - enabled;
+    document.getElementById('statEnabled').textContent = enabled;
+    document.getElementById('statDisabled').textContent = disabled;
+    document.getElementById('statTotal').textContent = total;
+  }
+
+  function updateCategoryCount() {
+    for (const [catName, cat] of Object.entries(CATEGORIES)) {
+      const activeCount = cat.keys.filter(k => flags[k] !== false).length;
+      // Update count in the DOM
+      const headers = document.querySelectorAll('.category-header');
+      headers.forEach(h => {
+        if (h.querySelector('.category-title')?.textContent === catName) {
+          const countEl = h.querySelector('.category-count');
+          if (countEl) countEl.textContent = `${activeCount}/${cat.keys.length} enabled`;
+        }
+      });
+    }
+  }
+
+  async function saveFlags() {
+    showLoading(true);
+    try {
+      const res = await fetch(`${API_BASE}/flags`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(flags),
+      });
+      if (!res.ok) throw new Error('Failed to save');
+      showToast('Flags saved! App will reflect changes within 10 seconds.', 'success');
+    } catch (e) {
+      showToast('Save failed. Check if backend is running.', 'error');
+    } finally {
+      showLoading(false);
+    }
+  }
+
+  function enableAll() {
+    Object.keys(flags).forEach(k => { flags[k] = true; });
+    renderFlags();
+    updateStats();
+    showToast('All features enabled (unsaved)', 'success');
+  }
+
+  function disableAll() {
+    Object.keys(flags).forEach(k => { flags[k] = false; });
+    renderFlags();
+    updateStats();
+    showToast('All features disabled (unsaved) — remember to save!', 'error');
+  }
+
+  function resetToDefaults() {
+    flags = { ...DEFAULT_FLAGS };
+    renderFlags();
+    updateStats();
+    showToast('Reset to defaults (unsaved)', 'success');
+  }
+
+  function showLoading(show) {
+    document.getElementById('loadingOverlay').classList.toggle('show', show);
+  }
+
+  let toastTimer;
+  function showToast(msg, type = 'success') {
+    const toast = document.getElementById('toast');
+    const icon = document.getElementById('toast-icon');
+    const msgEl = document.getElementById('toast-msg');
+    icon.textContent = type === 'success' ? '✓' : '✕';
+    msgEl.textContent = msg;
+    toast.className = `show ${type}`;
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => { toast.className = type; }, 4000);
+  }
+
+  // Auto-refresh every 30s
+  setInterval(loadFlags, 30000);
+  
+  // Init
+  loadFlags();
+</script>
+</body>
+</html>

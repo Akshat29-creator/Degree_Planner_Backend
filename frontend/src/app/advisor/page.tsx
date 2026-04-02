@@ -39,6 +39,7 @@ import { cn } from "@/lib/utils";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { FeatureGate } from "@/components/feature-gate";
 
 const careerSuggestions = [
     "Machine Learning Engineer",
@@ -1385,6 +1386,7 @@ export default function AdvisorPage() {
     // Load demo if no courses
     if (courses.length === 0) {
         return (
+            <FeatureGate featureKey="page_advisor" featureName="AI Advisor">
             <div className="container mx-auto max-w-7xl px-4 py-12">
                 <div className="glass-card p-12 text-center">
                     <GraduationCap className="w-16 h-16 text-purple-400 mx-auto mb-6" />
@@ -1403,11 +1405,13 @@ export default function AdvisorPage() {
                     </Button>
                 </div>
             </div>
+            </FeatureGate>
         );
     }
 
     return (
-        <div className="container mx-auto max-w-5xl px-4 py-12 pt-32">
+        <FeatureGate featureKey="page_advisor" featureName="AI Advisor">
+        <div className="container mx-auto max-w-5xl px-4 py-6 pt-6 md:pt-32 pb-28 md:pb-12">
             {/* Header */}
             <motion.div
                 initial={{ opacity: 0, y: 20 }}
@@ -1427,106 +1431,120 @@ export default function AdvisorPage() {
                 </p>
             </motion.div>
 
-            {/* Input Section */}
-            <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.1 }}
-                className="glass-card p-8 mb-8"
-            >
-                <div className="flex items-center gap-2 mb-4">
-                    <Target className="h-5 w-5 text-purple-400" />
-                    <h3 className="text-lg font-semibold text-white">
-                        What's Your Dream Career?
-                    </h3>
-                </div>
+            {/* Message Interaction Area */}
+            <div className="flex flex-col mb-6 md:mb-8 max-w-3xl mx-auto w-full">
+                {/* User Input Bubble & Compose Bar Area */}
+                <div className="w-full">
+                    {/* Quick suggestion chips — above input */}
+                    <div className="flex gap-2 overflow-x-auto pb-3 pt-2 scrollbar-none -mx-4 px-4 sm:mx-0 sm:px-0">
+                        {careerSuggestions.slice(0, 8).map((suggestion) => (
+                            <button
+                                key={suggestion}
+                                onClick={() => setCareerGoal(suggestion)}
+                                className="text-xs whitespace-nowrap px-4 py-2 rounded-full border border-white/10 bg-[#1c1c1e] text-zinc-300 hover:border-purple-500/50 hover:bg-purple-500/10 transition-all shrink-0 active:scale-95 shadow-sm"
+                            >
+                                {suggestion}
+                            </button>
+                        ))}
+                    </div>
 
-                <div className="flex gap-4 mb-6">
-                    <Input
-                        value={careerGoal}
-                        onChange={(e) => setCareerGoal(e.target.value)}
-                        placeholder="e.g., Machine Learning Engineer"
-                        className="flex-1 bg-white/5 border-white/10 text-lg py-6"
-                        onKeyDown={(e) => e.key === "Enter" && handleGetAdvice()}
-                    />
-                    <Button
-                        onClick={handleGetAdvice}
-                        disabled={isLoading || !careerGoal.trim()}
-                        className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-400 hover:to-pink-400 text-white px-8"
-                    >
-                        <>
-                            Get Roadmap
-                            <ArrowRight className="ml-2 h-4 w-4" />
-                        </>
-                    </Button>
-                </div>
-
-                {/* Quick suggestions */}
-                <div className="flex flex-wrap gap-2">
-                    <span className="text-sm text-muted-foreground mr-2">Popular:</span>
-                    {careerSuggestions.map((suggestion) => (
-                        <Badge
-                            key={suggestion}
-                            variant="outline"
-                            className="cursor-pointer border-white/10 hover:border-purple-500/50 hover:bg-purple-500/10 transition-all"
-                            onClick={() => setCareerGoal(suggestion)}
+                    {/* iMessage-style input pill */}
+                    <div className="relative flex items-end gap-2 bg-[#1c1c1e]/80 backdrop-blur-xl p-1.5 md:p-2 rounded-full border border-white/10 shadow-lg">
+                        <Input
+                            value={careerGoal}
+                            onChange={(e) => setCareerGoal(e.target.value)}
+                            placeholder="e.g., Machine Learning Engineer"
+                            className="flex-1 bg-transparent border-none focus-visible:ring-0 px-4 h-10 text-white placeholder:text-zinc-500 shadow-none text-sm md:text-base"
+                            onKeyDown={(e) => e.key === "Enter" && handleGetAdvice()}
+                        />
+                        <Button
+                            onClick={handleGetAdvice}
+                            disabled={isLoading || !careerGoal.trim()}
+                            className={cn(
+                                "rounded-full w-10 h-10 p-0 shrink-0 shadow-md transition-all",
+                                careerGoal.trim() ? "bg-blue-500 hover:bg-blue-600 text-white" : "bg-white/10 text-white/30"
+                            )}
                         >
-                            {suggestion}
-                        </Badge>
-                    ))}
+                            <ArrowRight className="h-5 w-5" />
+                        </Button>
+                    </div>
                 </div>
-            </motion.div>
+            </div>
 
             {/* Results */}
-            <AnimatePresence mode="wait">
-                {error && (
-                    <motion.div
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: -20 }}
-                        className="glass-card p-6 border-red-500/30 text-center"
-                    >
-                        <p className="text-red-400">{error}</p>
-                    </motion.div>
-                )}
+            <div className="max-w-4xl mx-auto space-y-8 w-full">
+                <AnimatePresence mode="wait">
+                    {/* User Message Bubble */}
+                    {(isTyping || advice || error) && (
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.9, y: 10 }}
+                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 0.9, y: 10 }}
+                            className="flex justify-end mb-6 w-full"
+                        >
+                            <div className="bg-blue-500 text-white px-5 py-3 rounded-2xl rounded-br-sm shadow-md max-w-[85%] sm:max-w-[75%]">
+                                <p className="text-sm md:text-base leading-relaxed">I want to become a <span className="font-bold">{advice ? careerGoal : careerGoal}</span>.</p>
+                            </div>
+                        </motion.div>
+                    )}
 
-                {isTyping && (
-                    <motion.div
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: -20 }}
-                        className="glass-card p-12 text-center"
-                    >
-                        <div className="mb-6 relative mx-auto w-24 h-24 flex items-center justify-center">
-                            <div className="absolute inset-0 rounded-full border-t-2 border-purple-500 animate-spin" />
-                            <Brain className="h-10 w-10 text-purple-400 animate-pulse" />
-                        </div>
-                        <h3 className="text-xl font-bold text-white mb-2">
-                            AI is Designing Your Career Path
-                        </h3>
-                        <p className="text-zinc-400 mb-6">
-                            Analyzing industry trends, mapping skills, and curating projects...
-                        </p>
-                        <div className="w-full max-w-md mx-auto h-2 bg-white/5 rounded-full overflow-hidden">
-                            <motion.div
-                                className="h-full bg-gradient-to-r from-purple-500 to-pink-500"
-                                initial={{ width: 0 }}
-                                animate={{ width: `${typingProgress}%` }}
-                                transition={{ type: "spring", stiffness: 50 }}
-                            />
-                        </div>
-                        <p className="text-xs text-zinc-500 mt-2 font-mono">
-                            {Math.round(typingProgress)}% COMPLETE
-                        </p>
-                    </motion.div>
-                )}
+                    {error && (
+                        <motion.div
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -20 }}
+                            className="flex gap-3 mb-6"
+                        >
+                            <div className="w-8 h-8 rounded-full bg-red-500/20 flex items-center justify-center shrink-0 mt-1">
+                                <Target className="w-4 h-4 text-red-400" />
+                            </div>
+                            <div className="bg-[#2c2c2e]/90 text-red-200 px-5 py-4 rounded-2xl rounded-bl-sm max-w-[85%] border border-red-500/20 shadow-sm">
+                                <p className="text-sm">{error}</p>
+                            </div>
+                        </motion.div>
+                    )}
 
-                {advice && (
-                    <motion.div
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        className="space-y-6"
-                    >
+                    {isTyping && (
+                        <motion.div
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -20 }}
+                            className="flex gap-3 mb-6"
+                        >
+                            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center shrink-0 mt-1 shadow-md">
+                                <Brain className="w-4 h-4 text-white animate-pulse" />
+                            </div>
+                            <div className="bg-[#2c2c2e]/90 text-white px-6 py-5 rounded-2xl rounded-bl-sm max-w-[85%] sm:max-w-md w-full border border-white/5 shadow-sm">
+                                <h3 className="text-sm font-semibold text-purple-300 mb-1 flex items-center gap-2">
+                                    <Sparkles className="h-3 w-3" />
+                                    Analyzing Path...
+                                </h3>
+                                <p className="text-xs text-zinc-400 mb-4">
+                                    Mapping skills, trends, and curating projects...
+                                </p>
+                                <div className="w-full h-1.5 bg-black/40 rounded-full overflow-hidden">
+                                    <motion.div
+                                        className="h-full bg-gradient-to-r from-purple-500 to-pink-500"
+                                        initial={{ width: 0 }}
+                                        animate={{ width: `${typingProgress}%` }}
+                                        transition={{ type: "spring", stiffness: 50 }}
+                                    />
+                                </div>
+                            </div>
+                        </motion.div>
+                    )}
+
+                    {/* AI Response Data Container */}
+                    {advice && (
+                        <motion.div
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            className="flex gap-3 w-full"
+                        >
+                            <div className="hidden sm:flex w-8 h-8 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 items-center justify-center shrink-0 mt-2 shadow-md">
+                                <Brain className="w-4 h-4 text-white" />
+                            </div>
+                            <div className="w-full space-y-6">
                         {/* Success Banner */}
                         <div className="p-4 rounded-2xl bg-gradient-to-r from-purple-500/10 via-pink-500/10 to-teal-500/10 border border-purple-500/20 flex flex-col md:flex-row items-center justify-between gap-4">
                             <div className="flex items-center gap-3">
@@ -1552,14 +1570,14 @@ export default function AdvisorPage() {
 
                         {/* TABS INTERFACE */}
                         <Tabs defaultValue="roadmap" className="w-full">
-                            <TabsList className="grid w-full grid-cols-3 bg-white/5 border border-white/10 p-1 mb-8">
-                                <TabsTrigger value="roadmap" className="data-[state=active]:bg-purple-500/20 data-[state=active]:text-purple-300">
+                            <TabsList className="flex w-full overflow-x-auto no-scrollbar h-auto justify-start bg-white/5 border border-white/10 p-1.5 mb-8 gap-1 [mask-image:linear-gradient(to_right,white_80%,transparent)]">
+                                <TabsTrigger value="roadmap" className="shrink-0 whitespace-nowrap data-[state=active]:bg-purple-500/20 data-[state=active]:text-purple-300 px-4 py-2">
                                     Roadmap & Projects
                                 </TabsTrigger>
-                                <TabsTrigger value="career" className="data-[state=active]:bg-blue-500/20 data-[state=active]:text-blue-300">
+                                <TabsTrigger value="career" className="shrink-0 whitespace-nowrap data-[state=active]:bg-blue-500/20 data-[state=active]:text-blue-300 px-4 py-2">
                                     Career & Insights
                                 </TabsTrigger>
-                                <TabsTrigger value="resources" className="data-[state=active]:bg-teal-500/20 data-[state=active]:text-teal-300">
+                                <TabsTrigger value="resources" className="shrink-0 whitespace-nowrap data-[state=active]:bg-teal-500/20 data-[state=active]:text-teal-300 px-4 py-2">
                                     Resources & Tools
                                 </TabsTrigger>
                             </TabsList>
@@ -1724,10 +1742,13 @@ export default function AdvisorPage() {
                                 <Rocket className="mr-2 h-4 w-4" />
                                 Create My Degree Plan
                             </Button>
-                        </motion.div>
+                            </motion.div>
+                        </div>
                     </motion.div>
                 )}
             </AnimatePresence>
+            </div>
         </div>
+        </FeatureGate>
     );
 }

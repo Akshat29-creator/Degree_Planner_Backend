@@ -28,7 +28,9 @@ import {
   ChevronRight,
   Github,
   Twitter,
-  Linkedin
+  Linkedin,
+  Repeat,
+  Grid3X3
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -48,26 +50,26 @@ function LandingNav() {
       "fixed top-0 left-0 right-0 z-50 transition-all duration-300 border-b",
       scrolled ? "bg-black/80 backdrop-blur-md border-white/10 py-4" : "bg-transparent border-transparent py-6"
     )}>
-      <div className="max-w-7xl mx-auto px-6 flex items-center justify-between">
+      <div className="max-w-7xl mx-auto px-4 md:px-6 flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-violet-600 to-fuchsia-600 flex items-center justify-center shadow-lg shadow-purple-500/25 border border-white/10 relative">
-            <Brain className="h-5 w-5 text-white relative z-10" />
-            <Sparkles className="h-3 w-3 absolute top-1 right-1 text-white/70" />
+          <div className="w-8 h-8 md:w-9 md:h-9 rounded-xl bg-gradient-to-br from-violet-600 to-fuchsia-600 flex items-center justify-center shadow-lg shadow-purple-500/25 border border-white/10 relative shrink-0">
+            <Brain className="h-4 w-4 md:h-5 md:w-5 text-white relative z-10" />
+            <Sparkles className="h-2 w-2 md:h-3 md:w-3 absolute top-1 right-1 text-white/70" />
           </div>
-          <div>
-            <span className="text-xl font-bold text-white tracking-tight block leading-none">DegreePlanner</span>
-            <span className="text-[10px] text-purple-400 font-bold tracking-wider flex items-center gap-1">
+          <div className="flex flex-col">
+            <span className="text-lg md:text-xl font-bold text-white tracking-tight block leading-none truncate">DegreePlanner</span>
+            <span className="hidden md:flex text-[10px] text-purple-400 font-bold tracking-wider items-center gap-1">
               AI AGENT <Sparkles className="h-2 w-2" />
             </span>
           </div>
         </div>
 
-        <div className="flex items-center gap-4">
-          <Link href="/login" className="text-sm font-medium text-zinc-400 hover:text-white transition-colors">
+        <div className="flex items-center gap-2 md:gap-4 shrink-0">
+          <Link href="/login" className="hidden md:block text-sm font-medium text-zinc-400 hover:text-white transition-colors">
             Sign In
           </Link>
           <Link href="/register">
-            <Button size="sm" className="rounded-full bg-white text-black hover:bg-zinc-200">
+            <Button size="sm" className="rounded-full bg-white text-black hover:bg-zinc-200 px-3 md:px-4 text-xs md:text-sm h-8 md:h-9">
               Get Started
             </Button>
           </Link>
@@ -246,19 +248,19 @@ export default function HomePage() {
       colSpan: "md:col-span-1",
     },
     {
-      icon: Users,
-      title: "Social Study",
-      description: "Connect with peers based on courses.",
+      icon: Repeat,
+      title: "Revision Hub",
+      description: "AI-extracted topics with deep interactive explanations.",
       color: "text-blue-400",
       gradient: "from-blue-400 to-cyan-500",
       colSpan: "md:col-span-1",
     },
     {
-      icon: Target,
-      title: "Goal Tracker",
-      description: "Keep your milestones in sight.",
-      color: "text-yellow-400",
-      gradient: "from-yellow-400 to-orange-500",
+      icon: Grid3X3,
+      title: "Performance Matrix",
+      description: "Visual knowledge mapping & test analytics.",
+      color: "text-amber-400",
+      gradient: "from-amber-400 to-orange-500",
       colSpan: "md:col-span-1",
     }
   ];

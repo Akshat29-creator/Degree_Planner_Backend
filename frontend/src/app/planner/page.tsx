@@ -40,6 +40,9 @@ import {
     ArrowLeft,
     Trophy,
     Building2,
+    X,
+    RotateCcw,
+    AlertCircle,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { VisualRoadmap } from "./VisualRoadmap";
@@ -47,6 +50,7 @@ import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import confetti from "canvas-confetti";
 import indianCourses from "@/data/indian-courses";
+import { FeatureGate } from "@/components/feature-gate";
 
 // Confetti celebration function
 const triggerConfetti = () => {
@@ -370,6 +374,7 @@ export default function PlannerPage() {
     const setCareerGoal = useAppStore((state) => state.setCareerGoal);
     const currentPlan = useAppStore((state) => state.currentPlan);
     const setCurrentPlan = useAppStore((state) => state.setCurrentPlan);
+    const resetAllData = useAppStore((state) => state.resetAllData);
 
     // Local state
     const [isGenerating, setIsGenerating] = useState(false);
@@ -380,6 +385,8 @@ export default function PlannerPage() {
     const [showUpload, setShowUpload] = useState(false);
     const [advisorMode, setAdvisorMode] = useState(false);
     const [exportSuccess, setExportSuccess] = useState(false);
+    const [showConfigMobile, setShowConfigMobile] = useState(false);
+    const [showResetConfirm, setShowResetConfirm] = useState(false);
 
     // Onboarding state
     const [onboardingStep, setOnboardingStep] = useState(1);
@@ -783,7 +790,7 @@ export default function PlannerPage() {
     // Onboarding wizard when no courses
     if (courses.length === 0 && !currentPlan) {
         return (
-            <div className="container mx-auto max-w-5xl px-4 py-12 pt-32">
+            <div className="container mx-auto max-w-5xl px-4 py-6 pt-6 md:pt-32 pb-28 md:pb-12">
                 <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
@@ -1181,6 +1188,7 @@ export default function PlannerPage() {
         setError(null);
         setAiAnalysis(null);
         setExportSuccess(false);
+        setShowConfigMobile(false); // Auto-close mobile sheet on generation
 
         try {
             const response = await generatePlan({
@@ -1268,16 +1276,27 @@ export default function PlannerPage() {
         if (!currentPlan) return;
 
         setIsAnalyzing(true);
+        const toastId = toast.loading(aiAnalysis ? "Refreshing analysis..." : "AI is analyzing your plan...");
         try {
             const analysis = await analyzePlan(
                 currentPlan.degree_plan,
                 careerGoal || undefined,
-                undefined,
-                advisorMode
+                courses.map(c => ({
+                    code: c.code,
+                    name: c.name,
+                    credits: c.credits,
+                    prerequisites: c.prerequisites,
+                    difficulty: c.difficulty as any
+                })),
+                advisorMode,
+                true // Force refresh
             );
             setAiAnalysis(analysis);
+            toast.success("Analysis complete!", { id: toastId });
         } catch (err) {
             console.error("Analysis failed:", err);
+            setError("AI Analysis failed to load. Please check if Ollama is running safely.");
+            toast.error("Analysis failed. Try again in a moment.", { id: toastId });
         } finally {
             setIsAnalyzing(false);
         }
@@ -1972,7 +1991,8 @@ export default function PlannerPage() {
     };
 
     return (
-        <div className="relative min-h-screen pt-32 pb-12 overflow-hidden">
+        <FeatureGate featureKey="page_planner" featureName="Degree Planner">
+        <div className="relative min-h-screen pt-6 pb-28 md:pt-32 md:pb-12 overflow-hidden">
             {/* Dynamic Background */}
             <div className="absolute inset-0 bg-[#050510] -z-20" />
             <div className="absolute inset-0 bg-[linear-gradient(to_right,#4f4f4f2e_1px,transparent_1px),linear-gradient(to_bottom,#4f4f4f2e_1px,transparent_1px)] bg-[size:14px_24px] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)] opacity-20 -z-10" />
@@ -1983,22 +2003,104 @@ export default function PlannerPage() {
                 <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="mb-10 text-center md:text-left"
+                    className="mb-10"
                 >
-                    <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-teal-500/10 border border-teal-500/20 text-teal-400 text-xs font-bold tracking-wider uppercase mb-4 shadow-[0_0_15px_-3px_rgba(20,184,166,0.3)] backdrop-blur-sm">
-                        <Users className="w-3 h-3" /> Student Planner
+                    <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
+                        <div className="text-center md:text-left">
+                            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-teal-500/10 border border-teal-500/20 text-teal-400 text-xs font-bold tracking-wider uppercase mb-4 shadow-[0_0_15px_-3px_rgba(20,184,166,0.3)] backdrop-blur-sm">
+                                <Users className="w-3 h-3" /> Student Planner
+                            </div>
+                            <h1 className="text-4xl md:text-5xl lg:text-6xl font-black text-transparent bg-clip-text bg-gradient-to-r from-white via-white to-zinc-400 mb-4 tracking-tight drop-shadow-lg leading-tight">
+                                Smart Degree Planner
+                            </h1>
+                            <p className="text-lg text-zinc-400 max-w-2xl leading-relaxed">
+                                Configure your preferences and let our AI architect your perfect academic journey.
+                            </p>
+                        </div>
+
+                        {/* Reset Plan Button */}
+                        <div className="flex justify-center md:justify-end md:pt-2 flex-shrink-0">
+                            <motion.button
+                                whileHover={{ scale: 1.04 }}
+                                whileTap={{ scale: 0.96 }}
+                                onClick={() => setShowResetConfirm(true)}
+                                className="flex items-center gap-2 px-5 py-3 rounded-2xl border border-red-500/30 bg-red-500/5 hover:bg-red-500/15 hover:border-red-500/60 text-red-400 hover:text-red-300 font-semibold text-sm transition-all duration-200 shadow-lg shadow-red-500/5 hover:shadow-red-500/20 backdrop-blur-sm"
+                            >
+                                <RotateCcw className="w-4 h-4" />
+                                Reset Plan
+                            </motion.button>
+                        </div>
                     </div>
-                    <h1 className="text-5xl md:text-6xl font-black text-transparent bg-clip-text bg-gradient-to-r from-white via-white to-zinc-400 mb-4 tracking-tight drop-shadow-lg">
-                        Smart Degree Planner
-                    </h1>
-                    <p className="text-lg text-zinc-400 max-w-2xl leading-relaxed">
-                        Configure your preferences and let our AI architect your perfect academic journey.
-                    </p>
                 </motion.div>
 
+                {/* Reset Confirmation Dialog */}
+                <AnimatePresence>
+                    {showResetConfirm && (
+                        <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
+                            onClick={() => setShowResetConfirm(false)}
+                        >
+                            <motion.div
+                                initial={{ opacity: 0, scale: 0.9, y: 20 }}
+                                animate={{ opacity: 1, scale: 1, y: 0 }}
+                                exit={{ opacity: 0, scale: 0.9, y: 20 }}
+                                transition={{ type: "spring", stiffness: 300, damping: 25 }}
+                                onClick={(e) => e.stopPropagation()}
+                                className="w-full max-w-md rounded-3xl bg-[#0d0d1a] border border-red-500/20 shadow-2xl shadow-red-500/10 p-8 text-center"
+                            >
+                                {/* Icon */}
+                                <div className="w-16 h-16 rounded-2xl bg-red-500/10 border border-red-500/20 flex items-center justify-center mx-auto mb-5">
+                                    <AlertCircle className="w-8 h-8 text-red-400" />
+                                </div>
+
+                                <h2 className="text-2xl font-bold text-white mb-2">Reset Your Plan?</h2>
+                                <p className="text-zinc-400 text-sm leading-relaxed mb-8">
+                                    This will clear all your courses, degree selections, completed courses, and the current generated plan.
+                                    You'll start fresh from <span className="text-white font-semibold">Step 1</span> of the setup wizard.
+                                </p>
+
+                                <div className="flex gap-3">
+                                    <button
+                                        onClick={() => setShowResetConfirm(false)}
+                                        className="flex-1 py-3 px-6 rounded-xl border border-zinc-700 bg-zinc-800/60 text-zinc-300 hover:bg-zinc-700/80 hover:text-white font-medium transition-all"
+                                    >
+                                        Cancel
+                                    </button>
+                                    <button
+                                        onClick={() => {
+                                            resetAllData();
+                                            setShowResetConfirm(false);
+                                            // Reset local wizard state too
+                                            setOnboardingStep(1);
+                                            setSelectedDegreeType(null);
+                                            setSelectedSpecialization(null);
+                                            setSelectedDegree(null);
+                                            setCustomDegreeName("");
+                                            setSelectedYear(null);
+                                            setAiAnalysis(null);
+                                            setError(null);
+                                            toast.success("Plan reset! Start fresh by selecting your degree.");
+                                        }}
+                                        className="flex-1 py-3 px-6 rounded-xl bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 text-white font-bold transition-all shadow-lg shadow-red-500/20 hover:shadow-red-500/40 active:scale-95"
+                                    >
+                                        <RotateCcw className="w-4 h-4 inline mr-2" />
+                                        Yes, Reset Everything
+                                    </button>
+                                </div>
+                            </motion.div>
+                        </motion.div>
+                    )}
+                </AnimatePresence>
+
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                    {/* Left Column - Configuration */}
-                    <div className="lg:col-span-1 space-y-6">
+                    {/* Left Column - Configuration (Hidden on mobile, shown in Drawer) */}
+                    <div className={cn(
+                        "lg:col-span-1 space-y-6",
+                        "hidden lg:block"
+                    )}>
                         {/* Completed Courses */}
                         <motion.div
                             initial={{ opacity: 0, x: -20 }}
@@ -2685,16 +2787,187 @@ export default function PlannerPage() {
                                     <h3 className="text-xl font-semibold text-white mb-2">
                                         Ready to Generate
                                     </h3>
-                                    <p className="text-muted-foreground">
+                                    <p className="text-muted-foreground mb-8">
                                         Configure your preferences and click the button to generate
                                         your optimized degree plan with AI insights.
                                     </p>
+                                    <Button
+                                        onClick={handleGenerate}
+                                        disabled={isGenerating}
+                                        className="bg-gradient-to-r from-teal-500 to-cyan-500 hover:from-teal-400 hover:to-cyan-400 text-black font-bold px-8 py-6 rounded-2xl shadow-xl shadow-teal-500/20 transition-all hover:scale-105 active:scale-95"
+                                    >
+                                        {isGenerating ? (
+                                            <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                                        ) : (
+                                            <Rocket className="mr-2 h-5 w-5" />
+                                        )}
+                                        {isGenerating ? "Generating..." : "Generate Optimized Route"}
+                                    </Button>
                                 </motion.div>
                             )}
                         </AnimatePresence>
                     </div>
                 </div>
             </div>
+
+            {/* MOBILE CONFIGURATION FAB */}
+            <div className="fixed bottom-24 right-6 z-40 lg:hidden">
+                <Button
+                    onClick={() => setShowConfigMobile(true)}
+                    className="w-14 h-14 rounded-full bg-teal-500 hover:bg-teal-400 text-black shadow-2xl shadow-teal-500/40 flex items-center justify-center p-0 border-0"
+                >
+                    <Zap className={cn("w-6 h-6", isGenerating && "animate-spin")} />
+                </Button>
+            </div>
+
+            {/* MOBILE CONFIGURATION SHEET */}
+            <AnimatePresence>
+                {showConfigMobile && (
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 bg-black/95 backdrop-blur-md z-[60] flex flex-col p-0 lg:hidden"
+                    >
+                        <div className="flex items-center justify-between p-6 border-b border-white/10 shrink-0">
+                            <div className="flex items-center gap-3">
+                                <div className="p-2 rounded-xl bg-teal-500/10 border border-teal-500/20">
+                                    <Zap className="w-5 h-5 text-teal-400" />
+                                </div>
+                                <h2 className="text-xl font-bold text-white tracking-tight">Configure Plan</h2>
+                            </div>
+                            <button
+                                onClick={() => setShowConfigMobile(false)}
+                                className="w-10 h-10 flex items-center justify-center bg-white/5 hover:bg-white/10 rounded-full transition-all text-gray-400 hover:text-white border border-white/10"
+                            >
+                                <X className="w-5 h-5" />
+                            </button>
+                        </div>
+
+                        <div className="flex-1 overflow-y-auto p-6 space-y-8 pb-32 custom-scrollbar">
+                            {/* Re-use components but without motion transitions for the internal items to avoid double animation */}
+                            
+                            {/* Completed Courses */}
+                            <div className="rounded-3xl bg-white/[0.03] border border-white/10 p-6">
+                                <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+                                    <CheckCircle2 className="h-5 w-5 text-green-400" />
+                                    Completed Courses
+                                    <Badge variant="outline" className="ml-auto text-xs">{completedCourses.length}</Badge>
+                                </h3>
+                                <div className="flex flex-wrap gap-2">
+                                    {courses.map((course) => (
+                                        <Badge
+                                            key={course.code}
+                                            variant={completedCourses.includes(course.code) ? "default" : "outline"}
+                                            className={cn(
+                                                "cursor-pointer px-3 py-1.5 transition-all text-xs",
+                                                completedCourses.includes(course.code)
+                                                    ? "bg-green-500/20 text-green-400 border-green-500/30 hover:bg-green-500/30"
+                                                    : "border-white/10 hover:border-white/30"
+                                            )}
+                                            onClick={() => toggleCourse(course.code, "completed")}
+                                        >
+                                            {course.code}
+                                        </Badge>
+                                    ))}
+                                </div>
+                            </div>
+
+                            {/* Priority Courses */}
+                            <div className="rounded-3xl bg-white/[0.03] border border-white/10 p-6">
+                                <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
+                                    <Target className="h-5 w-5 text-orange-400" />
+                                    Priority Courses
+                                </h3>
+                                <div className="flex flex-wrap gap-2">
+                                    {courses
+                                        .filter((c) => !completedCourses.includes(c.code))
+                                        .map((course) => (
+                                            <Badge
+                                                key={course.code}
+                                                variant={priorityCourses.includes(course.code) ? "default" : "outline"}
+                                                className={cn(
+                                                    "cursor-pointer px-3 py-1.5 transition-all text-xs",
+                                                    priorityCourses.includes(course.code)
+                                                        ? "bg-orange-500/20 text-orange-400 border-orange-500/30 hover:bg-orange-500/30"
+                                                        : "border-white/10 hover:border-white/30"
+                                                )}
+                                                onClick={() => toggleCourse(course.code, "priority")}
+                                            >
+                                                {course.code}
+                                            </Badge>
+                                        ))}
+                                </div>
+                            </div>
+
+                            {/* Settings */}
+                            <div className="rounded-3xl bg-white/[0.03] border border-white/10 p-6 space-y-6">
+                                <h3 className="text-lg font-semibold text-white flex items-center gap-2 mb-4">
+                                    <Sparkles className="h-5 w-5 text-teal-400" />
+                                    Parameters
+                                </h3>
+                                
+                                <div className="p-4 rounded-xl bg-teal-500/5 border border-teal-500/10">
+                                    <div className="flex items-center justify-between mb-4">
+                                        <span className="text-sm font-medium text-zinc-300">Remaining semesters: {remainingSemesters}</span>
+                                    </div>
+                                    <Slider
+                                        value={[remainingSemesters]}
+                                        onValueChange={([v]) => setRemainingSemesters(v)}
+                                        max={12}
+                                        min={1}
+                                        step={1}
+                                        className="py-2"
+                                    />
+                                </div>
+
+                                <div className="p-4 rounded-xl bg-purple-500/5 border border-purple-500/10">
+                                    <div className="flex items-center justify-between mb-4">
+                                        <span className="text-sm font-medium text-zinc-300">Max courses: {maxCoursesPerSemester}</span>
+                                    </div>
+                                    <Slider
+                                        value={[maxCoursesPerSemester]}
+                                        onValueChange={([v]) => setMaxCoursesPerSemester(v)}
+                                        max={8}
+                                        min={1}
+                                        step={1}
+                                        className="py-2"
+                                    />
+                                </div>
+
+                                <div className="relative group/input">
+                                    <input
+                                        type="text"
+                                        placeholder="e.g. AI Researcher, Web Dev..."
+                                        value={careerGoal}
+                                        onChange={(e) => setCareerGoal(e.target.value)}
+                                        className="w-full bg-white/5 border border-white/10 rounded-2xl px-5 py-4 text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-teal-500/50 transition-all"
+                                    />
+                                    <div className="absolute right-4 top-1/2 -translate-y-1/2 opacity-30">
+                                        <GraduationCap className="w-5 h-5 text-white" />
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Sticky Action Footer */}
+                        <div className="absolute bottom-0 left-0 w-full p-6 bg-gradient-to-t from-black via-black/90 to-transparent pt-12 shrink-0">
+                            <Button
+                                onClick={() => {
+                                    handleGenerate();
+                                    setShowConfigMobile(false);
+                                }}
+                                disabled={isGenerating}
+                                className="w-full bg-teal-500 hover:bg-teal-400 text-black font-bold py-7 text-lg rounded-2xl shadow-2xl shadow-teal-500/20"
+                            >
+                                {isGenerating ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : <Rocket className="mr-2 h-5 w-5" />}
+                                Generate Plan
+                            </Button>
+                        </div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
         </div>
+        </FeatureGate>
     );
 }

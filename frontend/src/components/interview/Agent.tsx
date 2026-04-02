@@ -181,7 +181,7 @@ const Agent = ({
     };
 
     return (
-        <div className="flex flex-col h-[600px] w-full bg-[#0a0a0f] rounded-3xl overflow-hidden border border-white/10 relative shadow-2xl">
+        <div className="flex flex-col h-[75vh] md:h-[600px] w-full bg-[#0a0a0f] rounded-3xl overflow-hidden border border-white/10 relative shadow-2xl">
             {/* Command Center Overlay */}
             <div className="absolute inset-0 pointer-events-none z-0">
                 <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-purple-500/50 to-transparent opacity-20" />

@@ -13,7 +13,7 @@ interface User {
 }
 
 import { auth } from "@/lib/firebase";
-import { GoogleAuthProvider, GithubAuthProvider, signInWithPopup } from "firebase/auth";
+import { GoogleAuthProvider, GithubAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult } from "firebase/auth";
 
 interface AuthContextType {
     user: User | null;
@@ -42,7 +42,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Check auth on mount
     useEffect(() => {
         checkAuth();
+        handleRedirectResult();
     }, []);
+
+    const handleRedirectResult = async () => {
+        try {
+            const result = await getRedirectResult(auth);
+            if (result) {
+                // If we got a result, process the social login
+                // We'll need to determine the provider from the credential or result
+                const provider = result.providerId === "google.com" ? "google" : "github";
+                await processSocialLoginResult(result, provider);
+            }
+        } catch (error) {
+            console.error("Redirect auth error:", error);
+        }
+    };
 
     const checkAuth = async () => {
         const token = localStorage.getItem("auth_token");
@@ -126,70 +141,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             authProvider.addScope('user:email');
         }
 
+        // DEEPLY IMPORTANT: Using redirect for mobile to avoid popup issues
+        const isMobile = window.innerWidth < 768 || /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+
         try {
+            if (isMobile) {
+                await signInWithRedirect(auth, authProvider);
+                // The page will redirect, so no need for further logic here.
+                return;
+            }
+
             const result = await signInWithPopup(auth, authProvider);
-            let userEmail = result.user.email;
-            const userName = result.user.displayName;
-            const uid = result.user.uid;
-
-            // FALLBACK: If GitHub email is null, fetch it using the access token
-            if (!userEmail && provider === "github") {
-                const credential = GithubAuthProvider.credentialFromResult(result);
-                const token = credential?.accessToken;
-
-                if (token) {
-                    try {
-                        const emailRes = await fetch('https://api.github.com/user/emails', {
-                            headers: { Authorization: `token ${token}` }
-                        });
-                        const emails = await emailRes.json();
-                        // Find primary verified email
-                        const primary = emails.find((e: any) => e.primary && e.verified);
-                        if (primary) userEmail = primary.email;
-                    } catch (err) {
-                        console.error("Failed to fetch GitHub emails manually", err);
-                    }
-                }
-            }
-
-            if (!userEmail) {
-                throw new Error("No email found from provider. Please ensure your email is public or try Google.");
-            }
-
-            // Backend Exchange
-            const response = await fetch(`${API_URL}/api/auth/social-login`, {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify({
-                    email: userEmail,
-                    name: userName,
-                    provider: provider,
-                    provider_id: uid
-                }),
-            });
-
-            if (!response.ok) {
-                const errorData = await response.json().catch(() => ({}));
-                console.error("Server error details:", errorData);
-                throw new Error(errorData.detail || "Social login failed on server");
-            }
-
-            const data = await response.json();
-            localStorage.setItem("auth_token", data.access_token);
-
-            await checkAuth();
-            router.push("/dashboard");
+            await processSocialLoginResult(result, provider);
 
         } catch (error: any) {
-            // Ignore cancelled popup errors (user closed it or double-clicked)
+            // Ignore cancelled popup errors
             if (error.code === "auth/cancelled-popup-request" || error.code === "auth/popup-closed-by-user") {
                 console.log("Popup was cancelled or closed by user.");
                 return;
             }
 
-            // Handle account already exists with different provider
             if (error.code === "auth/account-exists-with-different-credential") {
                 throw new Error("This email is already registered with a different sign-in method. Try using Google instead.");
             }
@@ -197,6 +168,61 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             console.error("Social login error:", error);
             throw new Error(error.message || "Social login failed");
         }
+    };
+
+    const processSocialLoginResult = async (result: any, provider: "google" | "github") => {
+        let userEmail = result.user.email;
+        const userName = result.user.displayName;
+        const uid = result.user.uid;
+
+        // FALLBACK: If GitHub email is null, fetch it using the access token
+        if (!userEmail && provider === "github") {
+            const credential = GithubAuthProvider.credentialFromResult(result);
+            const token = credential?.accessToken;
+
+            if (token) {
+                try {
+                    const emailRes = await fetch('https://api.github.com/user/emails', {
+                        headers: { Authorization: `token ${token}` }
+                    });
+                    const emails = await emailRes.json();
+                    const primary = emails.find((e: any) => e.primary && e.verified);
+                    if (primary) userEmail = primary.email;
+                } catch (err) {
+                    console.error("Failed to fetch GitHub emails manually", err);
+                }
+            }
+        }
+
+        if (!userEmail) {
+            throw new Error("No email found from provider. Please ensure your email is public or try Google.");
+        }
+
+        // Backend Exchange
+        const response = await fetch(`${API_URL}/api/auth/social-login`, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+                email: userEmail,
+                name: userName,
+                provider: provider,
+                provider_id: uid
+            }),
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            console.error("Server error details:", errorData);
+            throw new Error(errorData.detail || "Social login failed on server");
+        }
+
+        const data = await response.json();
+        localStorage.setItem("auth_token", data.access_token);
+
+        await checkAuth();
+        router.push("/dashboard");
     };
 
     const logout = () => {

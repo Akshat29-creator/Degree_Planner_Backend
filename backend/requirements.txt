@@ -11,12 +11,22 @@ asyncpg==0.29.0
 alembic==1.13.1
 
 # Validation and settings
-pydantic==2.5.3
+pydantic[email]==2.5.3
 pydantic-settings==2.1.0
 python-dotenv==1.0.0
 
 # HTTP client for Ollama API
 httpx==0.26.0
+
+# Authentication
+python-jose[cryptography]==3.3.0
+
+# General purpose cache
+redis>=5.0.0
+
+# Document processing
+PyMuPDF==1.24.0
+python-pptx==0.6.23
 
 # Utilities
 python-dateutil==2.8.2
@@ -24,3 +34,8 @@ python-dateutil==2.8.2
 # Development
 pytest==7.4.4
 pytest-asyncio==0.23.3
+
+# RAG Pipeline — Multi-Model Support
+# (Pure httpx calls to Ollama embed API — no LlamaIndex dependency needed)
+# numpy speeds up cosine similarity in rag_service.py (optional but recommended)
+numpy>=1.26.0

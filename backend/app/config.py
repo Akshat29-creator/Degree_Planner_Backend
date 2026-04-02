@@ -11,8 +11,15 @@ class Settings(BaseSettings):
     database_url: str = "postgresql://planner:plannerdev@localhost:5432/degree_planner"
     
     # Ollama - Local AI (NO cloud APIs)
-    ollama_base_url: str = "http://localhost:11434"
-    ollama_model: str = "llama3.1:8b"
+    ollama_base_url: str = "http://127.0.0.1:11434"
+
+    # Dual-model routing
+    ollama_fast_model: str = "qwen3:8b-q4_K_M"       # Always-loaded, GPU-only
+    ollama_reasoning_model: str = "qwen3:8b-q4_K_M"  # Consistent with 8B preference
+    ollama_embed_model: str = "nomic-embed-text"      # Embeddings for RAG
+
+    # Legacy alias — kept for backwards compat (points to fast model)
+    ollama_model: str = "qwen3:8b-q4_K_M"
     
     # CORS
     cors_origins: List[str] = ["http://localhost:3000", "http://127.0.0.1:3000", "*"]

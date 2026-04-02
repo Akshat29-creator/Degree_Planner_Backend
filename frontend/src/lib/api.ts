@@ -296,7 +296,7 @@ export interface UserResponse {
 // API FUNCTIONS
 // ================================
 
-async function fetchAPI<T>(
+export async function fetchAPI<T>(
     endpoint: string,
     options?: RequestInit
 ): Promise<T> {
@@ -314,7 +314,17 @@ async function fetchAPI<T>(
         throw new Error(error || `API Error: ${res.status}`);
     }
 
-    return res.json();
+    if (res.status === 204 || res.headers.get("content-length") === "0") {
+        return null as any;
+    }
+
+    const contentType = res.headers.get("content-type");
+    if (contentType && contentType.includes("application/json")) {
+        return res.json();
+    }
+
+    return null as any;
+
 }
 
 // Courses API
@@ -367,15 +377,19 @@ export async function analyzePlan(
     degreePlan: Record<string, string[]>,
     careerGoal?: string,
     courses?: CourseInput[],
-    advisorMode?: boolean
+    advisorMode?: boolean,
+    force: boolean = false
 ): Promise<AIPlanExplanation> {
     return fetchAPI("/api/ai/analyze-plan", {
+        // @ts-ignore
+        cache: force ? "no-store" : "default",
         method: "POST",
         body: JSON.stringify({
             degree_plan: degreePlan,
             career_goal: careerGoal,
             courses: courses,
             advisor_mode: advisorMode,
+            force: force,
         }),
     });
 }
@@ -580,6 +594,7 @@ export interface DocumentAnalysisResponse {
     key_concepts: string[];
     filename: string;
     file_type: string;
+    document_id?: number;
 }
 
 export interface TopicExplanationResponse {
@@ -595,8 +610,12 @@ export const analyzeDocument = async (file: File): Promise<DocumentAnalysisRespo
     const formData = new FormData();
     formData.append("file", file);
 
+    const token = typeof window !== 'undefined' ? localStorage.getItem("auth_token") : null;
     const response = await fetch(`${API_URL}/api/revision/analyze-document`, {
         method: "POST",
+        headers: {
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
         body: formData,
     });
 
@@ -748,6 +767,13 @@ export const deletePlan = async (id: number): Promise<void> => {
     });
 };
 
+export const resetDatabaseData = async (): Promise<void> => {
+    return fetchAPI("/api/history/reset-all-data", {
+        method: "DELETE",
+    });
+};
+
+
 
 // ================================
 // PRACTICE & SELF-TEST ENGINE
@@ -837,3 +863,158 @@ export const evaluateAnswers = async (
 
 // End of file
 
+// ================================
+// ASSESSMENT PLATFORM
+// ================================
+
+export interface GenerateAssessmentRequest {
+    document_id?: number | null;
+    manual_topics?: string | null;
+    mcq_count: number;
+    short_count: number;
+    long_count: number;
+}
+
+export interface AssessmentQuestion {
+    question: string;
+    type?: string;
+    options?: string[];
+    correct_answer?: string;
+    rubric?: string;
+}
+
+export interface AssessmentTestResponse {
+    topic_name: string;
+    test: {
+        mcqs: AssessmentQuestion[];
+        short_answers: AssessmentQuestion[];
+        long_answers: AssessmentQuestion[];
+    };
+}
+
+export interface AssessmentAnswerPayload {
+    question: string;
+    type: string;
+    rubric: string;
+    user_answer: string;
+}
+
+export interface EvaluateAssessmentRequest {
+    document_id?: number | null;
+    topic_name: string;
+    mcq_count: number;
+    short_count: number;
+    long_count: number;
+    answers: AssessmentAnswerPayload[];
+}
+
+export interface AssessmentEvaluation {
+    question: string;
+    user_answer: string;
+    is_correct: boolean;
+    marks_awarded: number;
+    max_marks: number;
+    teacher_feedback: string;
+}
+
+export interface EvaluateAssessmentResponse {
+    message: string;
+    result_id: number;
+    report: {
+        evaluations: AssessmentEvaluation[];
+        total_score: number;
+        max_score: number;
+        deep_analysis: {
+            strengths: string[];
+            weaknesses: string[];
+            improvement_plan: string;
+        }
+    };
+}
+
+export const uploadAssessmentDocument = async (file: File): Promise<{ message: string; document_id: number; filename: string; is_duplicate?: boolean }> => {
+    const formData = new FormData();
+    formData.append("file", file);
+
+    const token = typeof window !== 'undefined' ? localStorage.getItem("auth_token") : null;
+    const response = await fetch(`${API_URL}/api/assessment/upload`, {
+        method: "POST",
+        headers: {
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: formData,
+    });
+
+    if (!response.ok) {
+        const error = await response.json().catch(() => ({ detail: "Failed to upload document" }));
+        throw new Error(error.detail || "Document upload failed");
+    }
+
+    return response.json();
+};
+
+export const generateAssessmentTest = async (request: GenerateAssessmentRequest): Promise<AssessmentTestResponse> => {
+    return fetchAPI("/api/assessment/generate", {
+        method: "POST",
+        body: JSON.stringify(request),
+    });
+};
+
+export const evaluateAssessmentTest = async (request: EvaluateAssessmentRequest): Promise<EvaluateAssessmentResponse> => {
+    return fetchAPI("/api/assessment/evaluate", {
+        method: "POST",
+        body: JSON.stringify(request),
+    });
+};
+
+export interface UploadedDocumentItem {
+    id: number;
+    filename: string;
+    file_type: string;
+    created_at: string;
+}
+
+export interface DocumentDetail extends UploadedDocumentItem {
+    extracted_text: string;
+    analysis_result?: any;
+}
+
+export interface TestResultItem {
+    id: number;
+    topic_name: string;
+    percentage: number;
+    performance_level: string;
+    created_at: string;
+    mcq_count: number;
+    short_count: number;
+    long_count: number;
+}
+
+export interface TestResultDetail extends TestResultItem {
+    questions_json: any;
+    feedback_json: any;
+}
+
+export const getAssessmentDocuments = async (): Promise<UploadedDocumentItem[]> => {
+    return fetchAPI("/api/history/documents", { method: "GET" });
+};
+
+export const getAssessmentDocumentDetail = async (docId: number): Promise<DocumentDetail> => {
+    return fetchAPI(`/api/history/documents/${docId}`, { method: "GET" });
+};
+
+export const getAssessmentTests = async (): Promise<TestResultItem[]> => {
+    return fetchAPI("/api/history/tests");
+};
+
+export const getTestDetail = async (id: number): Promise<TestResultDetail> => {
+    return fetchAPI(`/api/history/tests/${id}`);
+};
+
+export const deleteHistoryDocument = async (id: number): Promise<void> => {
+    return fetchAPI(`/api/history/documents/${id}`, { method: "DELETE" });
+};
+
+export const deleteHistoryTest = async (id: number): Promise<void> => {
+    return fetchAPI(`/api/history/tests/${id}`, { method: "DELETE" });
+};

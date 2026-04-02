@@ -13,7 +13,11 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import get_settings
 from app.database import init_db
-from app.routers import courses_router, planner_router, ai_router, auth_router, revision_router, history_router, manual_entry_router, practice_router
+from app.utils.cache import init_redis, close_redis
+from app.routers import courses_router, planner_router, ai_router, auth_router, revision_router, history_router, manual_entry_router, practice_router, flags_router
+from app.routers.assessment import router as assessment_router
+from app.routers.performance import router as performance_router
+from app.routers.pipeline import router as pipeline_router  # Multi-model AI pipeline
 
 settings = get_settings()
 
@@ -23,9 +27,21 @@ async def lifespan(app: FastAPI):
     """Manage application lifecycle - initialize database on startup."""
     print("🚀 Starting Degree Planner API...")
     await init_db()
+    await init_redis()
     print("✅ Database initialized")
+    # Warm up the fast model so first request has no cold-start delay
+    try:
+        from app.services.model_pipeline import pipeline_service
+        warmup = await pipeline_service.health_check()
+        if warmup.get("ollama") == "online":
+            print(f"🤖 Ollama online — fast: {warmup.get('fast_model_available')}, reasoning: {warmup.get('reasoning_model_available')}")
+        else:
+            print("⚠️  Ollama not running — start with: ollama serve")
+    except Exception as e:
+        print(f"⚠️  Model warm-up skipped: {e}")
     yield
     print("👋 Shutting down...")
+    await close_redis()
 
 
 app = FastAPI(
@@ -68,6 +84,10 @@ app.include_router(revision_router, prefix="/api")  # /api/revision/*
 app.include_router(history_router, prefix="/api")  # /api/history/*
 app.include_router(manual_entry_router, prefix="/api")  # /api/manual-entry/*
 app.include_router(practice_router, prefix="/api")  # /api/practice/*
+app.include_router(flags_router, prefix="/api")  # /api/flags - Developer Tools
+app.include_router(assessment_router, prefix="/api") # /api/assessment/*
+app.include_router(performance_router, prefix="/api") # /api/performance/*
+app.include_router(pipeline_router, prefix="/api")   # /api/pipeline/* ← Multi-model pipeline
 
 
 @app.get("/")
@@ -76,7 +96,7 @@ async def root():
     return {
         "status": "healthy",
         "app": settings.app_name,
-        "version": "2.0.0",
+        "version": "2.2.0",
         "docs": "/docs"
     }
 
@@ -84,8 +104,10 @@ async def root():
 @app.get("/health")
 async def health_check():
     """Detailed health check."""
+    from app.utils.cache import redis_client
     return {
         "status": "healthy",
         "database": "connected",
+        "redis_cache": "connected" if redis_client else "unavailable",
         "ai_mode": "local (Ollama)"
     }

@@ -25,7 +25,7 @@ export const metadata: Metadata = {
 };
 
 import { AuthProvider } from "@/context/auth-context";
-
+import { FeatureFlagsProvider } from "@/context/feature-flags-context";
 import { Footer } from "@/components/layout/footer";
 
 export default function RootLayout({
@@ -38,11 +38,13 @@ export default function RootLayout({
       <body
         className={`${inter.className} min-h-screen bg-[#050510] text-gray-100 overflow-x-hidden`}
       >
-        <AuthProvider>
-          <Navbar />
-          {children}
-          <Footer />
-        </AuthProvider>
+        <FeatureFlagsProvider>
+          <AuthProvider>
+            <Navbar />
+            {children}
+            <Footer />
+          </AuthProvider>
+        </FeatureFlagsProvider>
       </body>
     </html>
   );

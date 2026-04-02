@@ -25,3 +25,33 @@ Thumbs.db
 .vscode/
 .idea/
 *.swp
+
+# Local Data
+*.db
+*.sqlite
+
+# Security
+!package.json
+!composer.json
+!tsconfig.json
+!next.config.json
+!jsconfig.json
+!package-lock.json
+!firebase.json
+
+# Ignore specific service account key
+prepwise-638a9-firebase-adminsdk-fbsvc-94f37c1f27.json
+
+# Deployment / K8s
+k8s/
+
+# Temporary / Logs
+tmp/
+errors.txt
+
+# Internal Documentation
+guidelines.md
+implementation_plan.md
+task.md
+walkthrough.md
+

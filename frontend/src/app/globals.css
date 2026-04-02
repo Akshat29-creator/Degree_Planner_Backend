@@ -226,10 +226,22 @@
 
   body {
     @apply bg-background text-foreground;
+    -webkit-tap-highlight-color: transparent; /* Remove grey flash on mobile tap */
+    touch-action: manipulation;
   }
 
   html {
     scroll-behavior: smooth;
+  }
+
+  /* Prevent iOS zoom on input focus */
+  input, textarea, select {
+    font-size: 16px !important;
+  }
+
+  /* Improve tap target sizes on mobile */
+  button, a {
+    touch-action: manipulation;
   }
 }
 
@@ -394,4 +406,35 @@
 
 .interview-btn-primary:hover {
   background: linear-gradient(135deg, #b8b3f0 0%, #9590d9 100%);
+}
+
+/* ================================
+   MOBILE UTILITY CLASSES
+================================ */
+
+/* Hide scrollbar while keeping scroll functionality */
+.scrollbar-none {
+  -ms-overflow-style: none;  /* IE / Edge */
+  scrollbar-width: none;     /* Firefox */
+}
+.scrollbar-none::-webkit-scrollbar {
+  display: none;             /* Chrome / Safari / Opera */
+}
+
+/* Safe-area bottom padding for notch phones */
+.pb-safe {
+  padding-bottom: env(safe-area-inset-bottom, 16px);
+}
+.pt-safe {
+  padding-top: env(safe-area-inset-top, 0px);
+}
+
+/* Translucent white bg not available in JIT */
+.bg-white\/8 {
+  background-color: rgba(255, 255, 255, 0.08);
+}
+
+/* Smooth scroll momentum on iOS */
+.scroll-touch {
+  -webkit-overflow-scrolling: touch;
 }

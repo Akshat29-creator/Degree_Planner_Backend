@@ -1,39 +1,43 @@
 """
-TestResult Model - Stores test attempt history for users.
+TestResult Model - Stores test attempt history for users across all question types.
 """
-from sqlalchemy import Column, String, Float, DateTime, JSON, ForeignKey
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy import Column, Integer, String, Float, DateTime, JSON, ForeignKey
 from sqlalchemy.orm import relationship
-from datetime import datetime
-from uuid import uuid4
+from sqlalchemy.sql import func
 
-from app.db.base_class import Base
-
+from app.database import Base
 
 class TestResult(Base):
-    """Model for storing practice/self-test results."""
+    """Model for storing AI-generated practice/self-test results and deep analysis."""
     
     __tablename__ = "test_results"
     
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
-    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=True)
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    document_id = Column(Integer, ForeignKey("uploaded_documents.id", ondelete="SET NULL"), nullable=True)
     
     # Test metadata
-    topic_name = Column(String, nullable=False)
-    question_type = Column(String, nullable=False)  # mcq / short / long
-    mode = Column(String, nullable=False)  # practice / self-test
+    topic_name = Column(String(255), nullable=False)
+    mode = Column(String(50), default="practice") # "practice" or "certification"
     
     # Scores
     total_score = Column(Float, default=0)
     max_score = Column(Float, default=0)
     percentage = Column(Float, default=0)
-    performance_level = Column(String, default="Average")  # Weak / Average / Strong
+    performance_level = Column(String(50), default="Average")  # Weak / Average / Strong
     
-    # Full data (questions, answers, feedback)
-    questions_json = Column(JSON, nullable=True)
+    # Question configurations used for this test
+    mcq_count = Column(Integer, default=0)
+    short_count = Column(Integer, default=0)
+    long_count = Column(Integer, default=0)
+    
+    # Full data payloads
+    questions_json = Column(JSON, nullable=True) # The generated test with user answers
+    feedback_json = Column(JSON, nullable=True)  # Teacher evaluation with deep analysis showing how to improve
     
     # Timestamps
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
     
-    # Relationship
+    # Relationships
     user = relationship("User", back_populates="test_results")
+    document = relationship("UploadedDocument", back_populates="test_results")

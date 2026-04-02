@@ -16,7 +16,9 @@ from app.schemas.plan import (
 from app.services.planner_service import planner_service
 from app.utils.ics_generator import generate_ics_file
 
-router = APIRouter(prefix="/plan", tags=["Degree Plan"])
+from app.routers.flags import feature_guard
+
+router = APIRouter(prefix="/plan", tags=["Degree Plan"], dependencies=[Depends(feature_guard("planner"))])
 
 
 @router.post("/generate", response_model=PlanGenerateResponse)
@@ -73,6 +75,16 @@ async def save_plan(
     db: AsyncSession = Depends(get_db)
 ):
     """Save a generated plan to the database."""
+    # Check for duplicate
+    stmt = select(DegreePlan).where(DegreePlan.name == request.name).order_by(DegreePlan.id.desc())
+    existing = (await db.execute(stmt)).scalars().first()
+    if existing and str(existing.semesters) == str(request.plan_response.degree_plan):
+        return PlanSaveResponse(
+            id=existing.id,
+            name=existing.name,
+            created_at=existing.created_at
+        )
+
     plan = DegreePlan(
         name=request.name,
         semesters=request.plan_response.degree_plan,

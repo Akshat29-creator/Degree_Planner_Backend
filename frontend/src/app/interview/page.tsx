@@ -9,6 +9,7 @@ import { generateInterviewQuestions, createInterview, getInterviewsByUserId, get
 import { toast } from "sonner";
 import InterviewCard from "@/components/interview/InterviewCard";
 import { Sparkles, Brain, Plus, X, Edit2, Play, ChevronRight, Code2, Users, Layers, MessageSquare } from "lucide-react";
+import { FeatureGate } from "@/components/feature-gate";
 
 interface Interview {
     id: string;
@@ -155,7 +156,8 @@ export default function InterviewPage() {
     const hasPastInterviews = userInterviews.length > 0;
 
     return (
-        <main className="min-h-screen pt-24 pb-20 px-4 bg-[#050510] selection:bg-purple-500/30">
+        <FeatureGate featureKey="page_interview" featureName="Interview Prep">
+        <main className="min-h-screen pt-6 md:pt-24 pb-28 md:pb-20 px-4 bg-[#050510] selection:bg-purple-500/30">
             {/* Background Ambience */}
             <div className="fixed inset-0 overflow-hidden pointer-events-none">
                 <div className="absolute top-0 left-1/4 w-[500px] h-[500px] bg-purple-600/10 rounded-full blur-[120px]" />
@@ -175,8 +177,8 @@ export default function InterviewPage() {
                             <span>AI-Powered Interview Coach</span>
                         </div>
 
-                        <h1 className="text-5xl md:text-6xl font-bold text-white leading-tight">
-                            Master Your Next <br />
+                        <h1 className="text-3xl md:text-5xl lg:text-6xl font-bold text-white leading-tight">
+                            Master Your Next <br className="hidden md:block" />
                             <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-400">
                                 Tech Interview
                             </span>
@@ -187,16 +189,16 @@ export default function InterviewPage() {
                             Get instant, harsh, and constructive feedback to refine your answers perfectly.
                         </p>
 
-                        <div className="flex flex-wrap gap-4">
+                        <div className="flex flex-col sm:flex-row gap-3">
                             <button
                                 onClick={() => {
                                     setShowModal(true);
                                     setStep(1);
                                 }}
-                                className="group relative px-8 py-4 bg-white text-black font-bold rounded-xl hover:bg-gray-100 transition-all shadow-[0_0_20px_rgba(255,255,255,0.3)] hover:shadow-[0_0_30px_rgba(255,255,255,0.5)] overflow-hidden"
+                                className="group relative w-full sm:w-auto px-8 py-4 bg-white text-black font-bold rounded-xl hover:bg-gray-100 transition-all shadow-[0_0_20px_rgba(255,255,255,0.3)] hover:shadow-[0_0_30px_rgba(255,255,255,0.5)] overflow-hidden"
                             >
                                 <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/50 to-transparent -translate-x-full group-hover:animate-shimmer" />
-                                <span className="flex items-center gap-2">
+                                <span className="flex items-center justify-center gap-2">
                                     <Play className="w-5 h-5 fill-current" />
                                     Start New Session
                                 </span>
@@ -205,12 +207,11 @@ export default function InterviewPage() {
                             <button
                                 onClick={() => {
                                     setShowAll(true);
-                                    // Small delay to allow state update to render full list before scrolling
                                     setTimeout(() => {
                                         document.getElementById('history')?.scrollIntoView({ behavior: 'smooth' });
                                     }, 100);
                                 }}
-                                className="px-8 py-4 bg-white/5 border border-white/10 text-white font-semibold rounded-xl hover:bg-white/10 transition-all cursor-pointer"
+                                className="w-full sm:w-auto px-8 py-4 bg-white/5 border border-white/10 text-white font-semibold rounded-xl hover:bg-white/10 transition-all cursor-pointer"
                             >
                                 View History
                             </button>
@@ -362,33 +363,44 @@ export default function InterviewPage() {
             {/* CREATE INTERVIEW WIZARD MODAL */}
             <AnimatePresence>
                 {showModal && (
-                    <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+                    <div className="fixed inset-0 bg-black/90 backdrop-blur-md z-50 flex flex-col justify-end md:justify-center md:items-center p-0 md:p-4">
                         <motion.div
-                            initial={{ opacity: 0, scale: 0.95, y: 20 }}
-                            animate={{ opacity: 1, scale: 1, y: 0 }}
-                            exit={{ opacity: 0, scale: 0.95, y: 20 }}
-                            className="bg-[#0a0a0f] border border-white/10 rounded-3xl w-full max-w-2xl overflow-hidden shadow-2xl relative"
+                            initial={{ opacity: 0, y: "100%" }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: "100%" }}
+                            transition={{ type: "spring", damping: 25, stiffness: 200 }}
+                            className="bg-[#050510] border-t md:border border-white/10 rounded-t-[2.5rem] md:rounded-3xl w-full max-w-2xl overflow-hidden shadow-2xl relative h-full md:h-auto md:max-h-[90dvh] flex flex-col pb-safe md:pb-0"
                         >
+                            {/* Drag Handle (Mobile Only) */}
+                            <div className="w-full flex justify-center py-3 md:hidden">
+                                <div className="w-12 h-1.5 bg-white/20 rounded-full" />
+                            </div>
+
                             {/* Modal Header */}
-                            <div className="p-6 border-b border-white/10 bg-white/5 flex items-center justify-between">
-                                <div>
-                                    <h2 className="text-xl font-bold text-white">
-                                        {step === 1 ? "Configure Interview" : "Review Questions"}
-                                    </h2>
-                                    <p className="text-xs text-gray-400 mt-1">
-                                        {step === 1 ? "Step 1 of 2: Setup" : "Step 2 of 2: Customize"}
-                                    </p>
+                            <div className="px-6 py-5 md:p-6 border-b border-white/5 bg-white/[0.02] flex items-center justify-between shrink-0">
+                                <div className="flex items-center gap-4">
+                                    <div className="w-10 h-10 rounded-2xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center md:hidden">
+                                        <Layers className="w-5 h-5 text-purple-400" />
+                                    </div>
+                                    <div>
+                                        <h2 className="text-xl font-bold text-white leading-none">
+                                            {step === 1 ? "Configure Interview" : "Review Questions"}
+                                        </h2>
+                                        <p className="text-[10px] uppercase tracking-widest text-purple-400 font-bold mt-1.5 opacity-80">
+                                            {step === 1 ? "Step 1: Parameters" : "Step 2: Customization"}
+                                        </p>
+                                    </div>
                                 </div>
                                 <button
                                     onClick={() => setShowModal(false)}
-                                    className="p-2 hover:bg-white/10 rounded-full transition-colors text-gray-400 hover:text-white"
+                                    className="w-10 h-10 flex items-center justify-center bg-white/5 hover:bg-white/10 rounded-full transition-all text-gray-400 hover:text-white border border-white/10"
                                 >
                                     <X className="w-5 h-5" />
                                 </button>
                             </div>
 
                             {/* Modal Body */}
-                            <div className="p-8 max-h-[60vh] overflow-y-auto custom-scrollbar">
+                            <div className="p-6 md:p-8 overflow-y-auto custom-scrollbar flex-1">
                                 {step === 1 ? (
                                     /* STEP 1: CONFIGURATION */
                                     <div className="space-y-6 animate-fadeIn">
@@ -464,7 +476,7 @@ export default function InterviewPage() {
                                                 </label>
                                                 <input
                                                     type="range"
-                                                    min="3"
+                                                    min="1"
                                                     max="10"
                                                     value={formData.amount}
                                                     onChange={(e) => setFormData({ ...formData, amount: parseInt(e.target.value) })}
@@ -539,7 +551,7 @@ export default function InterviewPage() {
                             </div>
 
                             {/* Modal Footer */}
-                            <div className="p-6 border-t border-white/10 bg-white/5 flex justify-between items-center">
+                            <div className="p-5 md:p-6 border-t border-white/10 bg-white/5 flex justify-between items-center shrink-0">
                                 {step === 2 ? (
                                     <button
                                         onClick={() => setStep(1)}
@@ -574,5 +586,6 @@ export default function InterviewPage() {
                 )}
             </AnimatePresence>
         </main>
+        </FeatureGate>
     );
 }

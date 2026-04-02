@@ -183,6 +183,7 @@ class AIAnalyzeRequest(BaseModel):
     career_goal: Optional[str] = None
     courses: Optional[List[CourseInput]] = None
     advisor_mode: bool = False
+    force: bool = False  # NEW: Force-refresh analysis (bypass cache)
 
 
 class AIExplanation(BaseModel):

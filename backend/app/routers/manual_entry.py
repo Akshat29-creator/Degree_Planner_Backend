@@ -9,7 +9,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.database import get_db
 from app.services.ollama_service import OllamaService
 
-router = APIRouter(prefix="/manual-entry", tags=["Manual Entry"])
+from app.routers.flags import feature_guard
+
+router = APIRouter(prefix="/manual-entry", tags=["Manual Entry"], dependencies=[Depends(feature_guard("manual_entry"))])
 
 
 # ==========================================

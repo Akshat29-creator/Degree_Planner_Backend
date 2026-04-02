@@ -15,54 +15,60 @@ import {
     UserCircle,
     LogOut,
     Sparkles,
-    ChevronRight,
     Clock,
-    Mic // Added for Interview
+    Mic,
+    Grid3X3,
+    ChevronUp,
+    X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/context/auth-context";
 import { useState, useEffect } from "react";
 
 const navItems = [
-    { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-    { href: "/planner", label: "Plan", icon: Calendar },
-    { href: "/graph", label: "Map", icon: GitBranch },
-    { href: "/advisor", label: "Advisor", icon: Bot },
-    { href: "/study", label: "Study", icon: Brain },
-    { href: "/revision", label: "Revision", icon: Repeat },
-    { href: "/buddy", label: "Buddy", icon: Heart },
-    { href: "/interview", label: "Interview", icon: Mic },
-    { href: "/history", label: "History", icon: Clock },
-    { href: "/profile", label: "Me", icon: UserCircle },
+    { href: "/dashboard",   label: "Home",        icon: LayoutDashboard },
+    { href: "/planner",     label: "Plan",        icon: Calendar },
+    { href: "/study",       label: "Study",       icon: Brain },
+    { href: "/revision",    label: "Revision",    icon: Repeat },
+    { href: "/performance", label: "Analytics",   icon: Grid3X3 },
+];
+
+// All items that live in the "More" sheet
+const moreItems = [
+    { href: "/dashboard",   label: "Dashboard",   icon: LayoutDashboard },
+    { href: "/planner",     label: "Plan",        icon: Calendar },
+    { href: "/graph",       label: "Map",         icon: GitBranch },
+    { href: "/advisor",     label: "Advisor",     icon: Bot },
+    { href: "/study",       label: "Study",       icon: Brain },
+    { href: "/revision",    label: "Revision",    icon: Repeat },
+    { href: "/buddy",       label: "Buddy",       icon: Heart },
+    { href: "/interview",   label: "Interview",   icon: Mic },
+    { href: "/history",     label: "History",     icon: Clock },
+    { href: "/performance", label: "Analytics",   icon: Grid3X3 },
+    { href: "/profile",     label: "Me",          icon: UserCircle },
 ];
 
 export function Navbar() {
     const pathname = usePathname();
     const { user, logout, isLoading } = useAuth();
-    const [scrolled, setScrolled] = useState(false);
+    const [scrolled, setScrolled]     = useState(false);
+    const [moreOpen, setMoreOpen]     = useState(false);
 
-    // Listen for scroll to adjust navbar appearance
     useEffect(() => {
-        const handleScroll = () => {
-            setScrolled(window.scrollY > 20);
-        };
+        const handleScroll = () => setScrolled(window.scrollY > 20);
         window.addEventListener("scroll", handleScroll);
         return () => window.removeEventListener("scroll", handleScroll);
     }, []);
 
-    if (isLoading) return null; // Avoid flicker
-    if (!user) return null; // Only show for logged in users 
+    // Close sheet when route changes
+    useEffect(() => { setMoreOpen(false); }, [pathname]);
+
+    if (isLoading) return null;
+    if (!user)     return null;
 
     return (
         <>
-            {/* SCROLL PROGRESS INDICATOR */}
-            <motion.div
-                className="fixed top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-teal-500 via-purple-500 to-cyan-500 z-[100] origin-left"
-                style={{ scaleX: pathname === "/" ? 0 : 1 }}
-                initial={{ transformOrigin: "0%" }}
-            />
-
-            {/* DESKTOP NAVBAR: FLOATING GLASS CAPSULE */}
+            {/* ─── DESKTOP NAVBAR (unchanged, floating capsule) ─── */}
             <header
                 className={cn(
                     "hidden lg:block fixed top-6 left-1/2 -translate-x-1/2 w-auto max-w-7xl z-50 transition-all duration-500",
@@ -75,7 +81,7 @@ export function Navbar() {
                         ? "bg-[#050510]/80 border-white/10 shadow-black/50"
                         : "bg-white/5 border-white/5 shadow-black/20"
                 )}>
-                    {/* Brand Pill */}
+                    {/* Brand */}
                     <Link href="/dashboard" className="flex items-center gap-3 pr-4 group relative">
                         <div className="relative w-10 h-10 flex items-center justify-center bg-gradient-to-br from-violet-600 to-fuchsia-600 rounded-xl text-white shadow-lg shadow-purple-500/25 group-hover:scale-105 transition-transform border border-white/10">
                             <Brain className="h-5 w-5 relative z-10" />
@@ -91,16 +97,15 @@ export function Navbar() {
                         </div>
                     </Link>
 
-                    {/* Navigation Pills */}
+                    {/* Nav pills */}
                     <nav className="flex items-center bg-black/20 rounded-full p-1 border border-white/5">
-                        {navItems.map((item) => {
+                        {moreItems.map((item) => {
                             const isActive = pathname === item.href;
                             const Icon = item.icon;
-
                             return (
                                 <Link key={item.href} href={item.href} className="relative">
                                     <div className={cn(
-                                        "relative px-4 py-2 rounded-full transition-all duration-300 flex items-center gap-2 text-sm font-medium select-none group/item",
+                                        "relative px-3 py-1.5 rounded-full transition-all duration-300 flex items-center gap-1.5 text-xs font-bold tracking-wide select-none group/item",
                                         isActive ? "text-white" : "text-zinc-400 hover:text-white"
                                     )}>
                                         {isActive && (
@@ -121,96 +126,196 @@ export function Navbar() {
                         })}
                     </nav>
 
-                    {/* User Profile Pill - AUTO WIDTH */}
+                    {/* User avatar + logout */}
                     <div className="pl-5 ml-4 border-l border-white/10 flex items-center gap-3">
                         <div className="text-right hidden xl:flex flex-col items-end whitespace-nowrap">
                             <div className="text-xs font-semibold text-white">
-                                {user?.email?.split('@')[0] || 'Guest'}
+                                {user?.email?.split("@")[0] || "Guest"}
                             </div>
-                            <div className="text-[10px] text-purple-400 font-medium uppercase tracking-wider">
-                                {user ? 'Student' : 'Visitor'}
-                            </div>
+                            <div className="text-[10px] text-purple-400 font-medium uppercase tracking-wider">Student</div>
                         </div>
-                        {user ? (
-                            <button
-                                onClick={logout}
-                                className="w-9 h-9 rounded-full bg-red-500/10 hover:bg-red-500 hover:text-white text-red-400 flex-shrink-0 flex items-center justify-center transition-all duration-300"
-                                title="Sign Out"
-                            >
-                                <LogOut className="h-4 w-4" />
-                            </button>
-                        ) : (
-                            <Link
-                                href="/auth/login"
-                                className="w-9 h-9 rounded-full bg-green-500/10 hover:bg-green-500 hover:text-white text-green-400 flex-shrink-0 flex items-center justify-center transition-all duration-300"
-                                title="Sign In"
-                            >
-                                <UserCircle className="h-4 w-4" />
-                            </Link>
-                        )}
+                        <button
+                            onClick={logout}
+                            className="w-9 h-9 rounded-full bg-red-500/10 hover:bg-red-500 hover:text-white text-red-400 flex-shrink-0 flex items-center justify-center transition-all duration-300"
+                            title="Sign Out"
+                        >
+                            <LogOut className="h-4 w-4" />
+                        </button>
                     </div>
                 </div>
             </header>
 
+            {/* ─── MOBILE BOTTOM NAV ─── */}
+            {/* Backdrop for "More" sheet */}
+            <AnimatePresence>
+                {moreOpen && (
+                    <motion.div
+                        key="backdrop"
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="fixed inset-0 z-40 bg-black/60 backdrop-blur-sm lg:hidden"
+                        onClick={() => setMoreOpen(false)}
+                    />
+                )}
+            </AnimatePresence>
 
-            {/* MOBILE NAVBAR: BOTTOM BAR (iOS Style) */}
-            <header className="lg:hidden fixed top-0 inset-x-0 z-50 p-4 pt-12 flex justify-between items-center bg-gradient-to-b from-black/80 to-transparent pointer-events-none">
-                <div className="flex items-center gap-2 pointer-events-auto">
-                    <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-violet-600 to-fuchsia-600 flex items-center justify-center shadow-lg shadow-purple-500/25 border border-white/10">
-                        <Brain className="h-5 w-5 text-white" />
-                    </div>
-                    <div>
-                        <span className="font-bold text-white tracking-tight block leading-none">DegreePlanner</span>
-                        <span className="text-[9px] text-purple-400 font-bold tracking-wider">AI AGENT</span>
-                    </div>
-                </div>
-                <div className="pointer-events-auto">
-                    <button onClick={logout} className="p-2 rounded-full bg-black/40 border border-white/10 text-zinc-400 hover:text-white backdrop-blur-md">
-                        <LogOut className="h-4 w-4" />
-                    </button>
-                </div>
-            </header>
+            {/* "More" Sheet — slides up from bottom */}
+            <AnimatePresence>
+                {moreOpen && (
+                    <motion.div
+                        key="more-sheet"
+                        initial={{ y: "100%" }}
+                        animate={{ y: 0 }}
+                        exit={{ y: "100%" }}
+                        transition={{ type: "spring", damping: 30, stiffness: 350 }}
+                        className="fixed bottom-0 inset-x-0 z-50 lg:hidden bg-[#0a0a12] border-t border-white/10 rounded-t-3xl pb-24 pt-3 px-4"
+                    >
+                        {/* Drag handle */}
+                        <div className="w-10 h-1 rounded-full bg-white/20 mx-auto mb-6" />
 
-            <nav className="fixed bottom-0 inset-x-0 bg-[#050510]/80 backdrop-blur-xl border-t border-white/10 z-50 lg:hidden pb-safe">
-                <div className="flex items-center justify-around px-2 py-3">
-                    {navItems.slice(0, 5).map((item) => {
-                        const isActive = pathname === item.href;
-                        const Icon = item.icon;
-                        return (
-                            <Link key={item.href} href={item.href} className="relative group">
-                                <div className={cn(
-                                    "flex flex-col items-center gap-1 transition-all duration-300",
-                                    isActive ? "transform -translate-y-1" : ""
-                                )}>
-                                    <div className={cn(
-                                        "p-1.5 rounded-xl transition-all duration-300 relative",
-                                        isActive ? "bg-teal-500/20" : ""
-                                    )}>
-                                        {isActive && (
-                                            <motion.div
-                                                layoutId="mobile-navbar-active"
-                                                className="absolute inset-0 bg-teal-500/20 rounded-xl"
-                                                transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
-                                            />
+                        {/* Close button */}
+                        <button
+                            onClick={() => setMoreOpen(false)}
+                            className="absolute top-4 right-4 w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-gray-400 hover:text-white"
+                        >
+                            <X className="w-4 h-4" />
+                        </button>
+
+                        <h2 className="text-xs font-semibold uppercase tracking-widest text-gray-500 px-2 mb-4">All Features</h2>
+
+                        {/* 3-column grid of all features */}
+                        <div className="grid grid-cols-3 gap-3">
+                            {moreItems.map((item) => {
+                                const isActive = pathname === item.href;
+                                const Icon = item.icon;
+                                return (
+                                    <Link
+                                        key={item.href}
+                                        href={item.href}
+                                        onClick={() => setMoreOpen(false)}
+                                        className={cn(
+                                            "flex flex-col items-center gap-2 py-4 px-2 rounded-2xl transition-all active:scale-95",
+                                            isActive
+                                                ? "bg-purple-500/15 border border-purple-500/30"
+                                                : "bg-white/5 border border-white/5 hover:bg-white/10"
                                         )}
-                                        <Icon className={cn(
-                                            "h-5 w-5 transition-colors",
-                                            isActive ? "text-teal-400" : "text-zinc-500 group-hover:text-zinc-300"
-                                        )} />
-                                    </div>
-                                    <span className={cn(
-                                        "text-[10px] font-medium transition-colors",
-                                        isActive ? "text-white" : "text-zinc-500"
-                                    )}>
-                                        {item.label}
-                                    </span>
-                                </div>
-                            </Link>
-                        );
-                    })}
-                    {/* More Menu Item for hidden links on mobile could go here */}
+                                    >
+                                        <div className={cn(
+                                            "w-12 h-12 rounded-2xl flex items-center justify-center transition-all",
+                                            isActive
+                                                ? "bg-purple-500/30 shadow-[0_0_20px_rgba(168,85,247,0.3)]"
+                                                : "bg-white/8"
+                                        )}>
+                                            <Icon className={cn(
+                                                "h-5 w-5",
+                                                isActive ? "text-purple-300" : "text-gray-400"
+                                            )} />
+                                        </div>
+                                        <span className={cn(
+                                            "text-xs font-semibold",
+                                            isActive ? "text-purple-300" : "text-gray-400"
+                                        )}>
+                                            {item.label}
+                                        </span>
+                                    </Link>
+                                );
+                            })}
+                        </div>
+
+                        {/* Sign out row */}
+                        <button
+                            onClick={() => { logout(); setMoreOpen(false); }}
+                            className="mt-4 w-full flex items-center gap-3 px-4 py-3 rounded-2xl bg-red-500/10 border border-red-500/15 text-red-400 text-sm font-semibold active:scale-95 transition-all"
+                        >
+                            <LogOut className="w-4 h-4" />
+                            Sign Out
+                        </button>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
+            {/* The bottom bar itself */}
+            <nav className="fixed bottom-0 inset-x-0 z-50 lg:hidden">
+                {/* Frosted glass bar */}
+                <div className="mx-3 mb-3 rounded-2xl bg-[#0a0a12]/85 backdrop-blur-2xl border border-white/10 shadow-[0_-4px_30px_rgba(0,0,0,0.5)]">
+                    <div className="flex items-center justify-around px-1 py-1">
+
+                        {/* First 2 tabs */}
+                        {navItems.slice(0, 2).map((item) => (
+                            <MobileNavTab key={item.href} item={item} isActive={pathname === item.href} />
+                        ))}
+
+                        {/* Centre "More" button — pill design like Instagram's + */}
+                        <button
+                            onClick={() => setMoreOpen(true)}
+                            className="relative flex flex-col items-center justify-center -mt-5"
+                        >
+                            <motion.div
+                                whileTap={{ scale: 0.9 }}
+                                className="w-14 h-14 rounded-2xl bg-gradient-to-br from-purple-600 via-violet-600 to-fuchsia-600 shadow-[0_0_24px_rgba(168,85,247,0.5)] flex flex-col items-center justify-center border border-white/15"
+                            >
+                                <Grid3X3 className="w-5 h-5 text-white" />
+                            </motion.div>
+                            <span className="text-[9px] font-bold text-purple-400 mt-1.5 tracking-wide">MORE</span>
+                        </button>
+
+                        {/* Last 2 tabs */}
+                        {navItems.slice(3).map((item) => (
+                            <MobileNavTab key={item.href} item={item} isActive={pathname === item.href} />
+                        ))}
+                    </div>
                 </div>
             </nav>
         </>
+    );
+}
+
+/* ── Single tab item component ── */
+function MobileNavTab({
+    item,
+    isActive,
+}: {
+    item: { href: string; label: string; icon: React.ElementType };
+    isActive: boolean;
+}) {
+    const Icon = item.icon;
+
+    return (
+        <Link href={item.href} className="relative min-w-[56px] flex flex-col items-center py-2 px-3 group">
+            {/* Active pill indicator */}
+            {isActive && (
+                <motion.div
+                    layoutId="mobile-active-pill"
+                    className="absolute inset-0 rounded-xl bg-white/8"
+                    transition={{ type: "spring", bounce: 0.25, duration: 0.4 }}
+                />
+            )}
+
+            {/* Icon */}
+            <div className="relative">
+                <Icon className={cn(
+                    "h-[22px] w-[22px] transition-all duration-300",
+                    isActive ? "text-purple-400 scale-110" : "text-zinc-500 group-hover:text-zinc-300"
+                )} />
+
+                {/* Active dot under icon */}
+                {isActive && (
+                    <motion.span
+                        layoutId="mobile-active-dot"
+                        className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-purple-400"
+                        transition={{ type: "spring", bounce: 0.3, duration: 0.4 }}
+                    />
+                )}
+            </div>
+
+            {/* Label */}
+            <span className={cn(
+                "text-[10px] font-semibold mt-1.5 transition-colors",
+                isActive ? "text-purple-300" : "text-zinc-600 group-hover:text-zinc-400"
+            )}>
+                {item.label}
+            </span>
+        </Link>
     );
 }

@@ -4,9 +4,11 @@ import dayjs from "dayjs";
 import Link from "next/link";
 import Image from "next/image";
 import { useEffect, useState } from "react";
+import { toast } from "sonner";
+import { Trash2, Loader2 } from "lucide-react";
 
 import { cn } from "@/lib/utils";
-import { getFeedbackByInterviewId } from "@/lib/actions/interview.action";
+import { getFeedbackByInterviewId, deleteInterview } from "@/lib/actions/interview.action";
 import DisplayTechIcons from "./DisplayTechIcons";
 
 interface InterviewCardProps {
@@ -33,6 +35,8 @@ const InterviewCard = ({
     createdAt,
 }: InterviewCardProps) => {
     const [feedback, setFeedback] = useState<Feedback | null>(null);
+    const [isDeleting, setIsDeleting] = useState(false);
+    const [isDeleted, setIsDeleted] = useState(false);
 
     useEffect(() => {
         async function fetchFeedback() {
@@ -64,8 +68,30 @@ const InterviewCard = ({
         feedback?.createdAt || createdAt || Date.now()
     ).format("MMM D, YYYY");
 
+    const handleDelete = async () => {
+        if (!interviewId || !odId) return;
+        if (!confirm("Are you sure you want to permanently delete this interview session?")) return;
+
+        setIsDeleting(true);
+        try {
+            const res = await deleteInterview(interviewId, odId);
+            if (res?.success) {
+                toast.success("Interview deleted successfully!");
+                setIsDeleted(true);
+            } else {
+                toast.error(res?.error || "Failed to delete interview.");
+            }
+        } catch (e: any) {
+            toast.error("Error deleting interview.");
+        } finally {
+            setIsDeleting(false);
+        }
+    };
+
+    if (isDeleted) return null;
+
     return (
-        <div className="interview-card-border w-[360px] max-sm:w-full min-h-96">
+        <div className="interview-card-border w-[360px] max-sm:w-full min-h-96 relative">
             <div className="interview-card">
                 <div>
                     {/* Type Badge */}
@@ -137,16 +163,26 @@ const InterviewCard = ({
                 <div className="flex flex-row justify-between items-end mt-6">
                     <DisplayTechIcons techStack={techstack} />
 
-                    <Link
-                        href={
-                            feedback
-                                ? `/interview/${interviewId}/feedback`
-                                : `/interview/${interviewId}`
-                        }
-                        className="px-4 py-2 bg-purple-500 hover:bg-purple-600 text-white text-sm font-medium rounded-full transition-colors"
-                    >
-                        {feedback ? "View Feedback" : "Start Interview"}
-                    </Link>
+                    <div className="flex items-center gap-2">
+                        <button
+                            onClick={handleDelete}
+                            disabled={isDeleting}
+                            className="p-2.5 text-red-400 bg-red-400/10 hover:bg-red-400/20 rounded-full transition-colors disabled:opacity-50"
+                        >
+                            {isDeleting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Trash2 className="w-4 h-4" />}
+                        </button>
+
+                        <Link
+                            href={
+                                feedback
+                                    ? `/interview/${interviewId}/feedback`
+                                    : `/interview/${interviewId}`
+                            }
+                            className="px-4 py-2 bg-purple-500 hover:bg-purple-600 text-white text-sm font-medium rounded-full transition-colors whitespace-nowrap"
+                        >
+                            {feedback ? "View Feedback" : "Start Interview"}
+                        </Link>
+                    </div>
                 </div>
             </div>
         </div>

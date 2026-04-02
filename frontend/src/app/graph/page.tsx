@@ -34,6 +34,7 @@ import {
     AlertTriangle
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { FeatureGate } from "@/components/feature-gate";
 
 // ==========================================
 // TYPES & CONSTANTS
@@ -149,7 +150,7 @@ function GraphContent() {
     const [nodes, setNodes, onNodesChange] = useNodesState<Node>([]);
     const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([]);
     const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
-    const { fitView } = useReactFlow();
+    const { fitView, zoomIn, zoomOut } = useReactFlow();
 
     // Derived: Planned Course Codes
     const plannedCourseCodes = useMemo(() => {
@@ -370,7 +371,7 @@ function GraphContent() {
     const selectedCourse = selectedNodeId ? courseMap.get(selectedNodeId) : null;
 
     return (
-        <div className="relative h-[700px] w-full bg-zinc-950 rounded-3xl border border-zinc-800 overflow-hidden shadow-2xl">
+        <div className="relative h-[60vh] md:h-[700px] w-full bg-zinc-950 rounded-3xl border border-zinc-800 overflow-hidden shadow-2xl">
             <ReactFlow
                 nodes={nodes}
                 edges={edges}
@@ -385,20 +386,47 @@ function GraphContent() {
             >
                 <Background color="#27272a" gap={20} size={1} />
 
+                {/* Google Maps-style Vertical Zoom Pill */}
+                <Panel position="bottom-left" className="mb-4 ml-3">
+                    <div className="flex flex-col items-center gap-1 bg-zinc-900/95 border border-zinc-700 rounded-full p-1.5 shadow-xl backdrop-blur-sm">
+                        <button
+                            onClick={() => fitView({ duration: 400 })}
+                            title="Reset view"
+                            className="w-8 h-8 rounded-full flex items-center justify-center text-zinc-400 hover:text-teal-400 hover:bg-white/10 transition-all active:scale-90"
+                        >
+                            <Layout className="w-3.5 h-3.5" />
+                        </button>
+                        <div className="w-5 h-px bg-zinc-700" />
+                        <button
+                            onClick={() => zoomIn({ duration: 200 })}
+                            title="Zoom in"
+                            className="w-8 h-8 rounded-full flex items-center justify-center text-zinc-200 hover:text-white hover:bg-white/10 transition-all active:scale-90 text-xl font-light leading-none"
+                        >
+                            +
+                        </button>
+                        <button
+                            onClick={() => zoomOut({ duration: 200 })}
+                            title="Zoom out"
+                            className="w-8 h-8 rounded-full flex items-center justify-center text-zinc-200 hover:text-white hover:bg-white/10 transition-all active:scale-90 text-xl font-light leading-none"
+                        >
+                            −
+                        </button>
+                    </div>
+                </Panel>
 
-                {/* Reset View Button */}
-                <Panel position="top-right">
+
+                {/* Reset View FAB */}
+                <Panel position="top-right" className="mr-2 mt-2 md:mr-4 md:mt-4">
                     <Button
-                        size="sm"
-                        variant="secondary"
+                        size="icon"
                         onClick={() => fitView({ duration: 500 })}
-                        className="shadow-lg bg-zinc-800 hover:bg-zinc-700 border border-zinc-700"
+                        className="shadow-[0_0_20px_rgba(20,184,166,0.5)] bg-gradient-to-br from-teal-400 to-emerald-500 hover:from-teal-300 hover:to-emerald-400 border-0 rounded-full w-12 h-12 flex items-center justify-center text-black hover:scale-105 transition-transform"
                     >
-                        <Layout className="w-4 h-4 mr-2" />
-                        Reset View
+                        <Layout className="w-5 h-5" />
                     </Button>
                 </Panel>
             </ReactFlow>
+
 
             {/* DETAILS SIDE PANEL */}
             <AnimatePresence>
@@ -532,7 +560,8 @@ function GraphContent() {
 // ==========================================
 export default function GraphPageWrapper() {
     return (
-        <div className="relative min-h-screen pt-32 pb-12 overflow-hidden">
+        <FeatureGate featureKey="page_graph" featureName="Knowledge Graph">
+        <div className="relative min-h-screen pt-6 md:pt-32 pb-28 md:pb-12 overflow-hidden">
             {/* Dynamic Background */}
             <div className="absolute inset-0 bg-[#050510] -z-20" />
             <div className="absolute inset-0 bg-[linear-gradient(to_right,#4f4f4f2e_1px,transparent_1px),linear-gradient(to_bottom,#4f4f4f2e_1px,transparent_1px)] bg-[size:14px_24px] [mask-image:radial-gradient(ellipse_60%_50%_at_50%_0%,#000_70%,transparent_100%)] opacity-20 -z-10" />
@@ -548,7 +577,7 @@ export default function GraphPageWrapper() {
                     <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-teal-500/10 border border-teal-500/20 text-teal-400 text-xs font-bold tracking-wider uppercase mb-4 shadow-[0_0_15px_-3px_rgba(20,184,166,0.3)] backdrop-blur-sm">
                         <Layout className="w-3 h-3" /> Interactive Map
                     </div>
-                    <h1 className="text-5xl md:text-6xl font-black text-transparent bg-clip-text bg-gradient-to-r from-white via-white to-zinc-400 mb-4 tracking-tight drop-shadow-lg">
+                    <h1 className="text-2xl md:text-5xl lg:text-6xl font-black text-transparent bg-clip-text bg-gradient-to-r from-white via-white to-zinc-400 mb-3 md:mb-4 tracking-tight drop-shadow-lg leading-tight">
                         Degree Knowledge Graph
                     </h1>
                     <p className="text-lg text-zinc-400 max-w-2xl mx-auto leading-relaxed">
@@ -588,5 +617,6 @@ export default function GraphPageWrapper() {
                 </motion.div>
             </div>
         </div>
+        </FeatureGate>
     );
 }

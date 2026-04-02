@@ -10,10 +10,12 @@ Provides AI-powered endpoints using LOCAL Ollama:
 NO CLOUD APIs - 100% LOCAL
 """
 from typing import List, Optional
+import hashlib
 from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.database import get_db
+from app.utils.cache import get_cache, set_cache
 
 from app.services.ollama_service import ollama_service
 from app.services.planner_service import planner_service
@@ -35,7 +37,9 @@ from app.schemas.plan import (
 )
 from app.schemas.profile import ProfileRequest, ProfileResponse, UserProfile
 
-router = APIRouter(prefix="/ai", tags=["AI Features (Local Ollama)"])
+from app.routers.flags import feature_guard
+
+router = APIRouter(prefix="/ai", tags=["AI Features (Local Ollama)"], dependencies=[Depends(feature_guard("ai_advisor"))])
 
 
 @router.post("/analyze-plan", response_model=AIExplanation)
@@ -46,68 +50,107 @@ async def analyze_plan(request: AIAnalyzeRequest):
     CRITICAL: Analysis uses ONLY the courses in the provided plan.
     """
     try:
+        # Generate cache key based on request payload
+        req_hash = hashlib.sha256(request.model_dump_json().encode()).hexdigest()
+        cache_key = f"ai:analyze_plan:{req_hash}"
+        
+        # Check cache (unless force is requested)
+        if not request.force:
+            cached_data = await get_cache(cache_key)
+            if cached_data:
+                return AIExplanation(**cached_data)
+
+        # Generate new AI response
+        # ⏱️ Increased timeout handled in ollama_service.init (300.0s)
         result = await ollama_service.analyze_plan(
             degree_plan=request.degree_plan,
             career_goal=request.career_goal,
             courses=[c.model_dump() for c in request.courses] if request.courses else None
         )
+
+        # ── Guard: Ollama returned None (timeout / model loading / OOM) ──
+        if result is None:
+            # ❌ REMOVED hardcoded fallback that caused "always same result"
+            raise HTTPException(
+                status_code=500, 
+                detail="Ollama model timed out or failed to generate analysis. Please try again in 30 seconds."
+            )
         
         # Map ALL fields from Ollama response to schema
-        return AIExplanation(
+        response_model = AIExplanation(
             explanation=result.get("explanation", ""),
             strengths=result.get("strengths", []),
             suggestions=result.get("suggestions", []),
             key_insight=result.get("key_insight"),
             # Enhanced fields
             career_alignment_score=result.get("career_alignment_score", 85),
-            skill_gaps=result.get("skill_gaps", ["Cloud Architecture", "System Design"]),
-            strategic_electives=result.get("strategic_electives", ["Cloud Computing", "Distributed Systems"]),
+            skill_gaps=result.get("skill_gaps", []),
+            strategic_electives=result.get("strategic_electives", []),
             difficulty_curve=result.get("difficulty_curve", "Balanced progression"),
             # Phase 2 fields
             projected_salary_range=result.get("projected_salary_range", "$70k - $95k"),
-            top_job_roles=result.get("top_job_roles", ["Software Engineer", "Full Stack Developer", "Systems Analyst", "Data Engineer", "Cloud Architect"]),
-            semester_difficulty_scores=result.get("semester_difficulty_scores", [4, 5, 6, 7, 8, 7, 6, 8]),
-            elevator_pitch=result.get("elevator_pitch", "A comprehensive plan building strong foundations before advanced specialization."),
-            # Phase 3 fields - ENSURE NON-EMPTY DEFAULTS FOR UI VISIBILITY
-            course_details=result.get("course_details") or {
-                "Introductory Course": {
-                    "description": "Foundational concepts covering core principles and essential methodologies.",
-                    "learning_outcomes": ["Understand fundamental concepts", "Apply basic problem-solving", "Build analytical thinking"],
-                    "connections": "Prerequisite for all advanced courses",
-                    "study_tips": "Focus on understanding concepts rather than memorization."
-                },
-                "Advanced Core": {
-                    "description": "Deepens knowledge with complex applications and real-world scenarios.",
-                    "learning_outcomes": ["Master advanced techniques", "Design complete solutions", "Optimize for performance"],
-                    "connections": "Builds upon introductory course",
-                    "study_tips": "Practice with hands-on projects and case studies."
-                },
-                "Capstone/Project": {
-                    "description": "Integrates all learning into a comprehensive project demonstrating mastery.",
-                    "learning_outcomes": ["Lead a full project lifecycle", "Present professional deliverables", "Collaborate effectively"],
-                    "connections": "Cumulative application of all coursework",
-                    "study_tips": "Start early, iterate often, and seek mentor feedback."
-                }
-            },
-            study_roadmap=result.get("study_roadmap") or {
-                "heavy_semester": "Focus on one major subject at a time. Use study groups.",
-                "light_semester": "Build side projects. Prepare for internships.",
-                "exam_period": "Active recall and spaced repetition are key."
-            },
-            salary_justification=result.get("salary_justification", "Based on current market demand for these technical skills."),
-            industry_relevance=result.get("industry_relevance") or {
-                "key_courses": ["Project Management", "Cloud Computing", "Data Analysis", "System Design"],
-                "industry_connections": "This curriculum aligns with skills sought by leading tech companies and provides a strong foundation for roles in software development, data science, and cloud engineering."
-            }
+            top_job_roles=result.get("top_job_roles", []),
+            semester_difficulty_scores=result.get("semester_difficulty_scores", []),
+            elevator_pitch=result.get("elevator_pitch", ""),
+            # Phase 3 fields
+            course_details=result.get("course_details", {}),
+            study_roadmap=result.get("study_roadmap") or {},
+            salary_justification=result.get("salary_justification", ""),
+            industry_relevance=result.get("industry_relevance") or {}
         )
+        
+        # Save to cache for 24 hours
+        await set_cache(cache_key, response_model.model_dump(), expire_seconds=86400)
+        
+        return response_model
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/unload-models")
+async def unload_models():
+    """
+    Immediately unload all Ollama models from VRAM.
+    
+    Call this after heavy AI tasks (quiz generation, document analysis, plan analysis)
+    to free GPU memory. Models will be reloaded on the next request.
+    """
+    import httpx
+    from app.config import get_settings
+    settings = get_settings()
+    
+    unloaded = []
+    errors = []
+    
+    for model in [settings.ollama_fast_model, settings.ollama_reasoning_model]:
+        try:
+            async with httpx.AsyncClient(timeout=10.0) as client:
+                resp = await client.post(
+                    f"{settings.ollama_base_url}/api/generate",
+                    json={"model": model, "prompt": "", "keep_alive": 0}
+                )
+                if resp.status_code == 200:
+                    unloaded.append(model)
+                else:
+                    errors.append(f"{model}: HTTP {resp.status_code}")
+        except Exception as e:
+            errors.append(f"{model}: {str(e)}")
+    
+    return {
+        "status": "done",
+        "unloaded": unloaded,
+        "errors": errors,
+        "message": f"Unloaded {len(unloaded)} model(s) from VRAM. GPU memory freed."
+    }
 
 
 @router.post("/career-advice", response_model=CareerAdviceResponse)
 async def get_career_advice(request: CareerAdviceRequest):
     """
     Get career-aligned course recommendations.
+
     
     CRITICAL: Only recommends courses from the available_courses list.
     """
@@ -417,18 +460,29 @@ async def get_profile_intelligence(
         )
         
         # 3. Update DB if suggestions exist
-        if ai_result.get("suggested_updates"):
+        if ai_result.get("suggested_updates") and isinstance(ai_result["suggested_updates"], dict):
             updates = ai_result["suggested_updates"]
             
-            if "name" in updates and updates["name"]: db_profile.name = updates["name"]
-            if "university" in updates and updates["university"]: db_profile.university = updates["university"]
-            if "degree_major" in updates and updates["degree_major"]: db_profile.degree_major = updates["degree_major"]
-            if "academic_year" in updates and updates["academic_year"]: db_profile.academic_year = updates["academic_year"]
-            if "goals" in updates and updates["goals"]: db_profile.goals = updates["goals"]
-            if "preferences" in updates and updates["preferences"]: db_profile.preferences = updates["preferences"]
+            def is_valid_update(val):
+                if not val: return False
+                if isinstance(val, str) and val.strip() in ["", "...", "string", "null", "None"]: return False
+                if isinstance(val, list) and len(val) == 1 and isinstance(val[0], str) and val[0] in ["goal1", "goal2"]: return False
+                return True
+
+            if "name" in updates and is_valid_update(updates["name"]): db_profile.name = updates["name"]
+            if "university" in updates and is_valid_update(updates["university"]): db_profile.university = updates["university"]
+            if "degree_major" in updates and is_valid_update(updates["degree_major"]): db_profile.degree_major = updates["degree_major"]
+            if "academic_year" in updates and is_valid_update(updates["academic_year"]): db_profile.academic_year = updates["academic_year"]
+            if "goals" in updates and is_valid_update(updates["goals"]): db_profile.goals = updates["goals"]
+            if "preferences" in updates and is_valid_update(updates["preferences"]): 
+                # keep existing preferences and update
+                current_prefs = db_profile.preferences or {}
+                if isinstance(updates["preferences"], dict):
+                    current_prefs.update(updates["preferences"])
+                db_profile.preferences = current_prefs
             
         # Auto-complete onboarding if key fields are filled (don't rely solely on AI)
-        if ai_result.get("onboarding_complete"):
+        if ai_result.get("onboarding_complete") is True:
             db_profile.completed_onboarding = True
         
         # Force onboarding complete if essential fields are present

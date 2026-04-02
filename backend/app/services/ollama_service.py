@@ -4,13 +4,16 @@ Ollama AI Service for Degree Planner.
 LOCAL-FIRST AI: This service uses ONLY Ollama running on localhost.
 No cloud APIs, no external services, complete privacy.
 
-Model: llama3.1:8b (configurable)
+Models:
+  Fast  (chat/Q&A):      qwen3:8b-q4_K_M  (always loaded, GPU)
+  Heavy (analysis/quiz): qwen3:14b-q4_K_M (on-demand, RAM+GPU)
 Endpoint: http://localhost:11434/api/generate
 """
 import json
 from typing import Optional, List, Dict
 import httpx
 from app.config import get_settings
+from app.services.model_router import route_model, get_keep_alive
 
 settings = get_settings()
 
@@ -20,7 +23,7 @@ SYSTEM_PROMPT = """SYSTEM IDENTITY
 You are “Degree Planner Agent”, a unified academic intelligence system.
 
 MODEL CONTEXT
-• You run on the local LLM: llama3.1:8b via Ollama
+• You run locally via Ollama (qwen3:8b-q4_K_M / qwen3:14b-q4_K_M)
 • You operate fully offline
 • You must behave deterministically and consistently
 
@@ -274,27 +277,41 @@ class OllamaService:
     
     def __init__(self):
         self.base_url = settings.ollama_base_url
-        self.model = settings.ollama_model
-        self.timeout = 180.0  # Increased timeout for comprehensive course generation (25-40 courses)
+        self.model = settings.ollama_model  # fast model (legacy compat)
+        self.timeout = 300.0
     
-    async def _call_ollama(self, prompt: str, system_instruction: str = SYSTEM_PROMPT) -> Optional[str]:
-        """Make an async call to local Ollama API."""
+    async def _call_ollama(
+        self,
+        prompt: str,
+        system_instruction: str = SYSTEM_PROMPT,
+        model: Optional[str] = None,
+        force_reasoning: bool = False,
+        think: bool = True,
+    ) -> Optional[str]:
+        """Make an async call to local Ollama API with model routing."""
+        # Route model: explicit override > force_reasoning > intent-based
+        if model is None:
+            model = route_model(prompt, force_reasoning=force_reasoning)
+
+        keep_alive = get_keep_alive(model)
+        is_reasoning = model == settings.ollama_reasoning_model
+
         url = f"{self.base_url}/api/generate"
-        
         payload = {
-            "model": self.model,
+            "model": model,
             "prompt": prompt,
             "system": system_instruction,
             "stream": False,
-            "keep_alive": 0,  # Unload model from GPU immediately after response (0% GPU when idle)
+            "think": think,  # Pass the thinking flag (True by default)
+            "keep_alive": keep_alive,
             "options": {
-                "temperature": 0.4,  # Slightly higher for more creative responses
-                "top_k": 40,
-                "top_p": 0.95,
-                "num_ctx": 8192,  # Increased context window for RTX 4060 8GB
-                "num_predict": 4096,  # Allow longer responses for detailed analysis
-                "num_gpu": 99,  # Use all GPU layers
-                "num_thread": 8,  # Optimal for most CPUs
+                "temperature": 0.2 if is_reasoning else 0.4,
+                "top_k": 30 if is_reasoning else 40,
+                "top_p": 0.85 if is_reasoning else 0.95,
+                "num_ctx": 16384 if is_reasoning else 8192,
+                "num_predict": 4096,
+                "num_gpu": 99,
+                "num_thread": 8,
             }
         }
         
@@ -320,9 +337,15 @@ class OllamaService:
             return None
     
     def _extract_json(self, text: str) -> Optional[Dict]:
-        """Extract and validate JSON from model response."""
+        """Extract and validate JSON from model response, handling reasoning tags."""
         if not text:
             return None
+        
+        # Strip <think>...</think> tags if they exist
+        import re
+        text = re.sub(r"<think>.*?</think>", "", text, flags=re.DOTALL)
+        # Also strip "Thinking..." if it appears as plain text
+        text = re.sub(r"(?i)thinking\.\.\.", "", text)
         
         try:
             # Try direct parse first
@@ -332,6 +355,7 @@ class OllamaService:
         
         # Try to find JSON block in response
         try:
+            # Find the FIRST occurrence of { and the LAST occurrence of }
             json_start = text.find('{')
             json_end = text.rfind('}') + 1
             if json_start >= 0 and json_end > json_start:
@@ -339,6 +363,7 @@ class OllamaService:
         except json.JSONDecodeError:
             pass
         
+        print(f"Failed to extract JSON from Ollama response. Raw text:\n{text[:500]}...")
         return None
     
     async def analyze_plan(
@@ -389,67 +414,69 @@ Analyze this plan thoroughly and provide:
 
 Respond with ONLY this JSON format:
 {{
-  "explanation": "Detailed plan overview...",
+  "explanation": "3-4 sentence plan overview",
   "strengths": ["Strength 1", "Strength 2", "Strength 3"],
-  "suggestions": ["Suggestion 1", "Suggestion 2", "Suggestion 3"],
-  "key_insight": "Critical insight...",
+  "suggestions": ["Suggestion 1", "Suggestion 2"],
+  "key_insight": "One critical insight",
   "career_alignment_score": 85,
   "course_details": {{
-    "CS101": {{
-      "description": "Introduction to programming fundamentals...",
+    "COURSE_CODE": {{
+      "description": "2-3 sentences on what this specific course teaches",
       "learning_outcomes": ["Outcome 1", "Outcome 2", "Outcome 3"],
-      "connections": "Prerequisite for CS102, CS201...",
-      "study_tips": "Practice coding daily, use online judges..."
+      "connections": "How this course builds on or enables others",
+      "study_tips": "Practical tips for this specific subject"
     }}
   }},
   "skill_gaps": ["Skill 1", "Skill 2"],
   "strategic_electives": ["Topic A", "Topic B"],
-  "difficulty_curve": "Description of difficulty progression...",
+  "difficulty_curve": "Steady progression",
   "projected_salary_range": "$70k - $90k",
-  "salary_justification": "Based on current market trends...",
+  "salary_justification": "Justification",
   "top_job_roles": ["Role A", "Role B", "Role C", "Role D", "Role E"],
   "semester_difficulty_scores": [4, 5, 7, 8, 6, 5, 8, 6],
-  "elevator_pitch": "This plan uniquely combines...",
+  "elevator_pitch": "2 sentences on why this plan is great",
   "study_roadmap": {{
-    "heavy_semester": "Tips for managing heavy semesters...",
-    "light_semester": "Use this time to build projects...",
-    "exam_period": "Focus on revision strategies..."
+    "heavy_semester": "Tips for heavy semesters",
+    "light_semester": "Use this time for projects",
+    "exam_period": "Revision strategies"
   }},
   "industry_relevance": {{
-    "key_courses": ["Course1", "Course2"],
-    "industry_connections": "These courses prepare you for..."
+    "industry_connections": "How courses connect to industry"
   }}
 }}"""
         
-        result = await self._call_ollama(prompt)
+        # Force fast model for plan analysis — the 'analyze' keyword in the prompt
+        # would otherwise trigger 14B routing, causing 3+ min responses and proxy timeouts.
+        # The 8B model handles structured JSON plan analysis well in ~30s.
+        result = await self._call_ollama(prompt, model=settings.ollama_fast_model)
         parsed = self._extract_json(result)
         
         if parsed:
             # SAFETY: Merge with defaults to ensure all fields are present
-            # Use RICH defaults so the UI looks good even if the LLM misses fields
+            # Use RICH but GENERAL defaults so the UI looks good even if the LLM misses fields
             defaults = {
-                "explanation": parsed.get("explanation", "Analysis provided."),
+                "explanation": parsed.get("explanation", "Reviewing your degree plan for academic balance and career alignment."),
                 "strengths": parsed.get("strengths", []),
                 "suggestions": parsed.get("suggestions", []),
                 "key_insight": parsed.get("key_insight", ""),
-                "career_alignment_score": 85,  # Optimistic default
+                "career_alignment_score": 80, 
                 "course_details": parsed.get("course_details", {}),
-                "skill_gaps": ["Advanced Cloud Patterns", "System Design"],  # Plausible default
-                "strategic_electives": ["Cloud Computing", "Distributed Systems"],  # Plausible default
-                "difficulty_curve": "Progressive increase in difficulty",
-                "projected_salary_range": "$70k - $95k",
-                "salary_justification": "Based on current market demand for these skills",
-                "top_job_roles": ["Software Engineer", "Full Stack Developer", "Systems Analyst", "Data Engineer", "Cloud Architect"],
-                "semester_difficulty_scores": [4, 5, 6, 7, 8, 7, 6, 8], # Visual interest default
-                "elevator_pitch": "This plan builds a strong foundation before specializing in high-demand technical areas.",
+                "skill_gaps": ["Specialized software proficiency", "Industry-specific project experience"], 
+                "strategic_electives": ["Advanced specialization modules", "Case-study intensive courses"], 
+                "difficulty_curve": "Progressive increase in complexity across semesters",
+                "projected_salary_range": "$65k - $90k",
+                "salary_justification": "Based on current market demand for graduates with this technical foundation.",
+                "top_job_roles": ["Specialist Role", "Analyst", "Strategic Lead", "Systems Consultant", "Operations Manager"],
+                "semester_difficulty_scores": [5, 5, 6, 7, 8, 7, 6, 8],
+                "elevator_pitch": "This plan provides a strong academic foundation with a focus on core competencies and practical application.",
                 "study_roadmap": {
-                    "heavy_semester": "Focus on one major subject at a time. Use study groups. Start assignments early.",
-                    "light_semester": "Build side projects. Contribute to open source. Prepare for internships.",
-                    "exam_period": "Active recall, spaced repetition. Focus on weak areas first."
+                    "heavy_semester": "Focus on one high-credit subject at a time. Use peer groups for complex problem-solving.",
+                    "light_semester": "Work on personal projects or gain practical experience to bolster your portfolio.",
+                    "exam_period": "Prioritize active recall for conceptual understanding and spaced repetition for retention."
                 },
                 "industry_relevance": {
                     "key_courses": [],
-                    "industry_connections": "This plan covers industry-relevant skills."
+                    "industry_connections": "This curriculum aligns with modern industry requirements and prepares you for professional practice."
                 }
             }
             # Update defaults with parsed values (only if they exist and are meaningful)
@@ -788,6 +815,40 @@ Respond in plain text (not JSON)."""
         
         return result or f"Failing {', '.join(failed_courses)} affects {len(affected_courses)} downstream courses. Estimated delay: {delay_semesters} semester(s). Consider meeting with your advisor to plan recovery."
 
+    async def explain_topic_in_detail(self, topic: str, context: str = "") -> Dict:
+        """
+        Explain a single topic in deep detail.
+        """
+        prompt = f"""You are an expert tutor in MULTI-LEVEL EXPLANATION MODE.
+Provide a comprehensive explanation for the topic: "{topic}".
+{'Context/Subject Area: ' + context if context else ''}
+
+Format your response strictly as JSON with this structure:
+{{
+  "topic": "{topic}",
+  "definition": "A clear, precise 2-3 sentence definition.",
+  "key_points": ["Point 1", "Point 2", "Point 3"],
+  "example": "A concrete analogy or example.",
+  "common_mistakes": ["Mistake 1", "Mistake 2"],
+  "revision_tip": "A quick memory trick or tip."
+}}"""
+        
+        result = await self._call_ollama(prompt)
+        parsed = self._extract_json(result)
+        
+        if parsed:
+            return parsed
+            
+        # Fallback if LLM fails parsing
+        return {
+            "topic": topic,
+            "definition": f"Detailed explanation of {topic} could not be generated.",
+            "key_points": ["System was unable to format response", "Please try again later"],
+            "example": "No example available",
+            "common_mistakes": [],
+            "revision_tip": "Please refer to your primary study materials for this topic."
+        }
+
     async def generate_study_plan(
         self,
         subjects: List[str],
@@ -884,7 +945,7 @@ WEAKNESS LEVEL: {weakness_level}
 
         # Dedicated System Prompt for Revision Engine
         revision_system_prompt = """SYSTEM MODE: SMART REVISION ENGINE
-MODEL: llama3.1:8b (Ollama)
+MODEL: qwen3:14b-q4_K_M (Ollama — Reasoning Model)
 
 ROLE
 You are a memory-optimization engine.
@@ -1022,7 +1083,7 @@ RULES:
 Just respond naturally with your explanation. Keep it clear and educational."""
             
             try:
-                result = await self._call_ollama(context, system_instruction=system_prompt)
+                result = await self._call_ollama(context, system_instruction=system_prompt, think=False)
                 
                 if result:
                     # For academic mode, return plain text directly (no JSON parsing)
@@ -1118,7 +1179,7 @@ If USER MESSAGE is present (ongoing chat):
 Remember: Be the friend everyone deserves but not everyone has. 💙"""
 
         try:
-            result = await self._call_ollama(context, system_instruction=system_prompt)
+            result = await self._call_ollama(context, system_instruction=system_prompt, think=False)
             
             if result:
                 parsed = self._extract_json(result)
@@ -1766,16 +1827,19 @@ For each question, provide:
 2. Whether correct/partial/incorrect
 3. Brief feedback (what was missing or wrong)
 
-Respond with ONLY valid JSON (no markdown):
+Respond with ONLY valid JSON (no markdown).
+IMPORTANT: Calculate the REAL total_score by summing all question scores. Calculate the REAL max_score as (number of questions × {max_per_q}). Calculate percentage as (total_score / max_score × 100).
+Number of questions: {len(answers_data)}
+
 {{
   "question_feedback": [
-    {{"question_id": "q1", "score": 1, "max_score": {max_per_q}, "is_correct": true, "feedback": "..."}}
+    {{"question_id": "q1", "score": <actual score>, "max_score": {max_per_q}, "is_correct": <true/false>, "feedback": "<feedback>"}}
   ],
-  "total_score": 5,
-  "max_score": 10,
-  "percentage": 50,
-  "performance_level": "Average",
-  "next_steps": ["Revise X", "Practice more"]
+  "total_score": <sum of all question scores>,
+  "max_score": <number of questions × {max_per_q}>,
+  "percentage": <total_score / max_score × 100>,
+  "performance_level": "<Excellent if >=80, Good if >=60, Average if >=40, Weak if below 40>",
+  "next_steps": ["<specific suggestion based on wrong answers>"]
 }}
 """
 
@@ -1795,7 +1859,17 @@ Respond with ONLY valid JSON (no markdown):
                         fb["user_answer"] = answers_data[idx].get("user_answer", "")
                         fb["correct_answer"] = answers_data[idx].get("correct_answer", "")
                 
-                print(f"[DEBUG] Evaluation complete: {parsed.get('percentage', 0)}%")
+                # ALWAYS recalculate scores server-side — never trust AI example values
+                real_total = sum(fb.get("score", 0) for fb in feedback_list)
+                real_max = len(answers_data) * max_per_q
+                real_pct = round((real_total / real_max * 100), 1) if real_max > 0 else 0
+                real_level = "Excellent" if real_pct >= 80 else ("Good" if real_pct >= 60 else ("Average" if real_pct >= 40 else "Weak"))
+                parsed["total_score"] = real_total
+                parsed["max_score"] = real_max
+                parsed["percentage"] = real_pct
+                parsed["performance_level"] = real_level
+                
+                print(f"[DEBUG] Evaluation complete: {real_pct}%")
                 return parsed
         
         # Fallback: Simple matching
@@ -1834,6 +1908,99 @@ Respond with ONLY valid JSON (no markdown):
             "question_feedback": feedback,
             "next_steps": ["Review incorrect answers", "Try more questions on this topic"]
         }
+
+
+    async def analyze_document_for_revision(self, text: str, filename: str = "") -> dict:
+        """
+        Analyze uploaded document content and generate a structured revision plan.
+        Returns subject, topics, revision_plan, estimated_hours, key_concepts.
+        """
+        system_prompt = """You are an expert academic study planner. Analyze documents and create structured revision plans.
+Always respond ONLY with valid JSON. No prose outside JSON."""
+
+        preview = text[:5000]  # Limit to context window
+        prompt = f"""Analyze the following academic document and create a structured revision plan.
+
+Filename: {filename}
+Content Preview:
+---
+{preview}
+---
+
+Respond with ONLY this JSON structure:
+{{
+  "subject": "Identified subject/course name",
+  "topics": [
+    {{
+      "name": "Topic name",
+      "difficulty": "Easy|Medium|Hard",
+      "estimated_hours": 1,
+      "subtopics": ["subtopic 1", "subtopic 2"]
+    }}
+  ],
+  "revision_plan": "A concise 3-5 sentence study strategy for this material.",
+  "estimated_hours": 10,
+  "key_concepts": ["concept 1", "concept 2", "concept 3", "concept 4", "concept 5"]
+}}"""
+
+        raw = await self._call_ollama(prompt, system_instruction=system_prompt)
+        result = self._extract_json(raw) if raw else None
+
+        if not result:
+            return {
+                "subject": filename or "Unknown Subject",
+                "topics": [{"name": "Document Content", "difficulty": "Medium", "estimated_hours": 2, "subtopics": []}],
+                "revision_plan": "Review the document carefully. Focus on key definitions and examples. Practice explaining concepts in your own words.",
+                "estimated_hours": 5,
+                "key_concepts": ["Review document", "Make notes", "Self-test"]
+            }
+        return result
+
+    async def explain_topic_in_detail(self, topic: str, context: str = "") -> Dict:
+        """
+        Generate a comprehensive topic explanation for the revision/study module.
+        Returns structured JSON with definition, key_points, example, common_mistakes, revision_tip.
+        """
+        system_prompt = """You are an expert academic tutor. Explain topics clearly, concisely, and memorably.
+Always respond ONLY with valid JSON. No prose. No markdown outside JSON."""
+
+        prompt = f"""Explain the following academic topic in detail.
+
+Topic: {topic}
+{f'Subject Context: {context}' if context else ''}
+
+Respond with ONLY this JSON structure:
+{{
+  "topic": "{topic}",
+  "definition": "A clear 2-3 sentence definition of the topic.",
+  "key_points": [
+    "Key point 1 with explanation",
+    "Key point 2 with explanation",
+    "Key point 3 with explanation",
+    "Key point 4 with explanation"
+  ],
+  "example": "A concrete, real-world example or analogy that makes this concept click.",
+  "common_mistakes": [
+    "Common mistake 1 students make about this topic",
+    "Common mistake 2"
+  ],
+  "revision_tip": "A single high-value tip for remembering or mastering this topic in an exam."
+}}"""
+
+        raw = await self._call_ollama(prompt, system_instruction=system_prompt)
+        result = self._extract_json(raw) if raw else None
+
+        if not result:
+            # Graceful fallback so the UI never crashes
+            return {
+                "topic": topic,
+                "definition": f"{topic} is an important academic concept. Please ensure Ollama is running for a full explanation.",
+                "key_points": ["Review your course notes for this topic.", "Ask your instructor for clarification."],
+                "example": "No example available — Ollama may be offline or timed out.",
+                "common_mistakes": ["Skipping this topic in revision."],
+                "revision_tip": "Try explaining this topic out loud without your notes."
+            }
+        return result
 
 
 # Singleton instance

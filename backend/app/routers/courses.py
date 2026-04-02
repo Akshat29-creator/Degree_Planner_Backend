@@ -14,7 +14,9 @@ from app.schemas.course import (
     CourseBulkImport,
 )
 
-router = APIRouter(prefix="/courses", tags=["Courses"])
+from app.routers.flags import feature_guard
+
+router = APIRouter(prefix="/courses", tags=["Courses"], dependencies=[Depends(feature_guard("courses"))])
 
 
 @router.get("", response_model=CourseListResponse)
