@@ -85,59 +85,68 @@ export async function createInterviewFeedback(params: CreateFeedbackParams) {
 
         console.log("Generating feedback with Ollama for interview:", interviewId);
 
-        // Use environment variable or default to 127.0.0.1 for local dev (Windows)
-        const ollamaUrl = process.env.OLLAMA_BASE_URL || "http://127.0.0.1:11434";
+        const ollamaUrl = process.env.OLLAMA_BASE_URL || "http://host.docker.internal:11434";
         const ollamaModel = process.env.OLLAMA_MODEL || "qwen3:8b-q4_K_M";
         
         console.log(`[DEBUG] Interview Feedback - URL: ${ollamaUrl}, Model: ${ollamaModel}`);
 
-        // Call local Ollama for feedback generation with CONSTRUCTIVE evaluation
+        // Build Q&A pairs for inclusion in combined prompt
+        const interviewerLines = transcript.filter(
+            (s: { role: string; content: string }) => s.role === 'assistant'
+        );
+        const userLines = transcript.filter(
+            (s: { role: string; content: string }) => s.role === 'user' || s.role === 'candidate'
+        );
+        const qaPromptData = interviewerLines.slice(0, Math.max(interviewerLines.length, userLines.length)).map((q: any, i: number) => ({
+            question: q.content,
+            userAnswer: userLines[i]?.content || "(no answer)"
+        }));
+
+        // Single combined Ollama call: feedback + Q&A review in one shot
         const response = await fetch(`${ollamaUrl}/api/generate`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
                 model: ollamaModel,
-                prompt: `You are a SUPPORTIVE, constructive senior HR interviewer. Analyze this mock interview transcript and provide encouraging, helpful feedback.
+                prompt: `You are a SUPPORTIVE, constructive senior HR interviewer. Analyze this mock interview transcript.
 
 SCORING RULES:
-- Be lenient. If the candidate tried and gave a partially correct answer, give them credit (60-80).
-- If the answer was good with some specific examples: Score 80-95
-- Only score low (0-30) if they completely avoided the question or said "I don't know".
-- Focus on positive reinforcement: tell them what they did right, and then briefly explain what they missed and how to improve next time.
+- Be lenient. Partial answers get credit (60-80). Good answers with examples: 80-95. Only score low (0-30) if they dodged the question entirely.
+- Focus on positive reinforcement: what they did right, then gently explain what they missed.
 
 INTERVIEW TRANSCRIPT:
 ${formattedTranscript}
 
 USER RESPONSE COUNT: ${userResponses.length} answers provided
 
-EVALUATE EACH CATEGORY (0-100):
-
-1. COMMUNICATION SKILLS: Did they articulate clearly?
-2. TECHNICAL KNOWLEDGE: Highlight their valid technical points and briefly mention the gaps.
-3. PROBLEM SOLVING: Did they show analytical thinking?
-4. CULTURAL FIT: Did they show enthusiasm and professionalism?
-5. CONFIDENCE & CLARITY: Were they clear and composed?
+Q&A PAIRS FOR REVIEW:
+${qaPromptData.map((qa: any, i: number) => `${i + 1}. Q: ${qa.question}\n   A: ${qa.userAnswer}`).join('\n\n')}
 
 Return ONLY this JSON (no markdown, no extra text):
 {
   "totalScore": <number 0-100>,
   "categoryScores": [
-    {"name": "Communication Skills", "score": <0-100>, "comment": "Brief supportive feedback on their good points and mistakes..."},
-    {"name": "Technical Knowledge", "score": <0-100>, "comment": "Brief supportive feedback on their good points and mistakes..."},
-    {"name": "Problem Solving", "score": <0-100>, "comment": "Brief supportive feedback on their good points and mistakes..."},
-    {"name": "Cultural Fit", "score": <0-100>, "comment": "Brief supportive feedback on their good points and mistakes..."},
-    {"name": "Confidence and Clarity", "score": <0-100>, "comment": "Brief supportive feedback on their good points and mistakes..."}
+    {"name": "Communication Skills", "score": <0-100>, "comment": "..."},
+    {"name": "Technical Knowledge", "score": <0-100>, "comment": "..."},
+    {"name": "Problem Solving", "score": <0-100>, "comment": "..."},
+    {"name": "Cultural Fit", "score": <0-100>, "comment": "..."},
+    {"name": "Confidence and Clarity", "score": <0-100>, "comment": "..."}
   ],
-  "strengths": ["Clear strength 1", "Clear strength 2", "Clear strength 3"],
-  "areasForImprovement": ["Area 1 with encouraging tone on HOW to fix", "Area 2 with encouraging tone on HOW to fix"],
-  "finalAssessment": "An encouraging overall summary. Highlight their good points and provide a gentle recommendation for improvement."
+  "strengths": ["strength 1", "strength 2", "strength 3"],
+  "areasForImprovement": ["area 1 with HOW to improve", "area 2 with HOW to improve"],
+  "finalAssessment": "Encouraging overall summary with a gentle recommendation.",
+  "qaReview": [
+    ${qaPromptData.map((_: any, i: number) => `{"question": "exact question ${i+1}", "userAnswer": "what candidate said", "idealAnswer": "ideal 2-4 sentence answer"}`).join(',\n    ')}
+  ]
 }`,
-                system: "You are a supportive, insightful interview evaluator. Score gently but fairly. Give credit for effort and partial answers. Provide brief, constructive feedback that highlights what they did well and gently corrects their mistakes. Return ONLY valid JSON.",
+                system: "You are a supportive interview evaluator and coach. Return ONLY valid JSON with the exact structure requested. No markdown, no extra text.",
                 stream: false,
                 options: {
-                    temperature: 0.5, // Increased slightly for more natural encouragement
-                    num_predict: 4096,
-                    num_ctx: 8192,
+                    temperature: 0.5,
+                    num_predict: 6000,
+                    num_ctx: 12288,
+                    num_gpu: 99,       // Use all available GPU layers
+                    num_batch: 512,    // Larger batch size for better GPU throughput
                 }
             }),
         });
@@ -168,7 +177,7 @@ Return ONLY this JSON (no markdown, no extra text):
             console.error("Failed to parse feedback JSON:", e);
         }
 
-        // Use parsed data or ZERO defaults (not 70!)
+        // Use parsed data or ZERO defaults
         const feedback: any = {
             interviewId: interviewId,
             userId: odId,
@@ -183,70 +192,16 @@ Return ONLY this JSON (no markdown, no extra text):
             strengths: feedbackData?.strengths || ["Unable to identify - please retry"],
             areasForImprovement: feedbackData?.areasForImprovement || ["Unable to identify - please retry"],
             finalAssessment: feedbackData?.finalAssessment || "Evaluation could not be completed. Please try again.",
-            transcript: transcript, // Store full transcript for Q&A review tab
+            transcript: transcript,
             createdAt: new Date().toISOString(),
         };
 
-        // ---- Generate Q&A breakdown with ideal answers ----
-        try {
-            // Extract interviewer questions and user answers from transcript
-            const interviewerLines = transcript.filter(
-                (s: { role: string; content: string }) => s.role === 'assistant'
-            );
-            const userLines = transcript.filter(
-                (s: { role: string; content: string }) => s.role === 'user' || s.role === 'candidate'
-            );
-
-            if (interviewerLines.length > 0 && userLines.length > 0) {
-                const qaPromptData = interviewerLines.slice(0, userLines.length).map((q: any, i: number) => ({
-                    question: q.content,
-                    userAnswer: userLines[i]?.content || "(no answer)"
-                }));
-
-                const qaPrompt = `You are an expert technical interviewer providing model answers.
-
-For each question below, provide a short ideal answer that would impress an interviewer. Keep each ideal answer to 2-4 sentences. Be encouraging and educational.
-
-Q&A PAIRS:
-${qaPromptData.map((qa: any, i: number) => `${i + 1}. QUESTION: ${qa.question}\n   USER SAID: ${qa.userAnswer}`).join('\n\n')}
-
-Return ONLY a JSON array in this exact format:
-[
-  {
-    "question": "exact question text",
-    "userAnswer": "what the candidate said",
-    "idealAnswer": "the ideal 2-4 sentence answer"
-  }
-]`;
-
-                const qaResponse = await fetch(`${ollamaUrl}/api/generate`, {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({
-                        model: ollamaModel,
-                        prompt: qaPrompt,
-                        system: "You are a helpful interview coach. Return ONLY a valid JSON array with question, userAnswer, and idealAnswer fields. No markdown, no extra text.",
-                        stream: false,
-                        options: { temperature: 0.4, num_predict: 4096, num_ctx: 8192 }
-                    }),
-                });
-
-                if (qaResponse.ok) {
-                    const qaData = await qaResponse.json();
-                    let qaText = qaData.response || "";
-                    // Strip reasoning tags
-                    qaText = qaText.replace(/<think>[\s\S]*?<\/think>/gi, "").trim();
-                    
-                    const qaMatch = qaText.match(/\[[\s\S]*\]/);
-                    if (qaMatch) {
-                        feedback.qaReview = JSON.parse(qaMatch[0]);
-                        console.log("Q&A review generated:", feedback.qaReview.length, "pairs");
-                    }
-                }
-            }
-        } catch (qaError) {
-            console.error("Q&A review generation failed (non-fatal):", qaError);
-            // Non-fatal: feedback page will hide the tab if qaReview is absent
+        // Q&A review is now included in the combined response - extract directly
+        if (feedbackData?.qaReview && Array.isArray(feedbackData.qaReview) && feedbackData.qaReview.length > 0) {
+            feedback.qaReview = feedbackData.qaReview;
+            console.log("Q&A review extracted from combined response:", feedback.qaReview.length, "pairs");
+        } else {
+            console.warn("Q&A review missing from combined response - tab will be hidden");
         }
 
         let feedbackRef;
@@ -383,8 +338,8 @@ export async function generateInterviewQuestions(params: {
     const { type, role, level, techstack, amount } = params;
 
     try {
-        // Use environment variable or default to 127.0.0.1 (Windows)
-        const ollamaUrl = process.env.OLLAMA_BASE_URL || "http://127.0.0.1:11434";
+        // Use environment variable or default to host.docker.internal (Windows)
+        const ollamaUrl = process.env.OLLAMA_BASE_URL || "http://host.docker.internal:11434";
         const ollamaModel = process.env.OLLAMA_MODEL || "qwen3:8b-q4_K_M";
         
         console.log(`[DEBUG] Interview Question Gen - URL: ${ollamaUrl}, Model: ${ollamaModel}`);
@@ -417,6 +372,8 @@ Return ONLY a valid JSON array of questions, no other text:
                 options: {
                     temperature: 0.7,
                     num_predict: 2048,
+                    num_gpu: 99,
+                    num_batch: 512,
                 }
             }),
         });

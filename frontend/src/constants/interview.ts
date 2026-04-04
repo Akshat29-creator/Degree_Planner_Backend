@@ -56,9 +56,12 @@ export const interviewer: CreateAssistantDTO = {
         "Hello! Thank you for taking the time to speak with me today. I'm excited to learn more about you and your experience.",
     transcriber: {
         provider: "deepgram",
-        model: "nova-2",
+        model: "nova-3",
         language: "en",
-    },
+        // nova-3 has best accuracy; smartFormat fixes names/punctuation; endpointing waits longer before cutting off speech
+        smartFormat: true,
+        endpointing: 400,
+    } as any,
     voice: {
         provider: "11labs",
         voiceId: "sarah",

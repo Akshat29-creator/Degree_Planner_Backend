@@ -1590,18 +1590,37 @@ CRITICAL:
         Analyze a document (PDF/PPT) and create a revision plan.
         Uses the main model for better compatibility.
         """
-        # Truncate if too long (keep first ~4000 chars for better processing)
-        truncated_text = document_text[:4000] if len(document_text) > 4000 else document_text
+        # Keep first ~60,000 chars for deep processing (matches 16k token context of Qwen 14B)
+        truncated_text = document_text[:60000] if len(document_text) > 60000 else document_text
         
-        prompt = f"""You are analyzing study material. Extract topics and create a revision plan.
+        # High-Performance Analysis Mode
+        prompt = f"""You are a Revision Analysis Specialist. I need an UNLIMITED, EXHAUSTIVE, and HYPER-DETAILED breakdown of this document.
+Do NOT summarize. Do NOT skip any chapters. List EVERY distinct concept, topic, and sub-topic mentioned in the text.
 
 DOCUMENT: "{filename}"
 
 TEXT CONTENT:
 {truncated_text}
 
-Based on this content, respond with ONLY valid JSON (no markdown, no explanation):
-{{"subject": "Main Subject Name", "topics": [{{"name": "Topic 1", "difficulty": "Medium", "priority": 1}}, {{"name": "Topic 2", "difficulty": "Easy", "priority": 2}}], "revision_plan": "Brief revision strategy", "estimated_hours": 3, "key_concepts": ["concept1", "concept2"]}}"""
+---
+STRICT OUTPUT INSTRUCTIONS:
+1. Provide a VERY LONG list of topics (I expect 25, 30, or even 50 items if the material is dense).
+2. For each topic, ensure the "name" is clear and captures exactly what the student needs to learn.
+3. If you do not extract at least 25 detailed topics, you have failed the task. Be comprehensive!
+
+Respond with ONLY valid JSON (no markdown, no explanation):
+{{
+  "subject": "Hyper-Detailed Subject Title", 
+  "topics": [
+    {{"name": "Chapter 1: Specific Detailed Sub-topic", "difficulty": "Medium", "priority": 1}}, 
+    {{"name": "Chapter 1: Second Specific Concept", "difficulty": "Hard", "priority": 2}},
+    {{"name": "Chapter 2: Detailed Concept Details", "difficulty": "Easy", "priority": 3}},
+    ... (add DOZENS more topics here to cover the entire text) ...
+  ], 
+  "revision_plan": "Deeply technical, step-by-step revision strategy covering every extracted topic in detail", 
+  "estimated_hours": 15, 
+  "key_concepts": ["concept1", "concept2", "concept3", "concept4", "concept5", "concept6", "concept7", "concept8", "concept9", "concept10"]
+}}"""
         
         print(f"[DEBUG] Analyzing document: {filename}")
         print(f"[DEBUG] Text length: {len(truncated_text)} chars")

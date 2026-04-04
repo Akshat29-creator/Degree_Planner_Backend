@@ -24,7 +24,7 @@ interface AuthContextType {
     logout: () => void;
 }
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "/api/backend";
 
 // ============================================
 // CONTEXT
@@ -141,16 +141,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             authProvider.addScope('user:email');
         }
 
-        // DEEPLY IMPORTANT: Using redirect for mobile to avoid popup issues
-        const isMobile = window.innerWidth < 768 || /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
-
         try {
-            if (isMobile) {
-                await signInWithRedirect(auth, authProvider);
-                // The page will redirect, so no need for further logic here.
-                return;
-            }
-
+            // Use popup for all devices (including mobile) to avoid "Missing Initial State" issues
             const result = await signInWithPopup(auth, authProvider);
             await processSocialLoginResult(result, provider);
 

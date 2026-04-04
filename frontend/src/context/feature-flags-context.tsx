@@ -62,7 +62,7 @@ export function FeatureFlagsProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const fetchFlags = async () => {
       try {
-        const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL || "/api/backend";
         const res = await fetch(`${apiUrl}/api/flags`);
         if (res.ok) {
           const data = await res.json();

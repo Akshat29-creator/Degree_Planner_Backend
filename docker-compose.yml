@@ -60,7 +60,12 @@ services:
 
   # Next.js Frontend
   frontend:
-    build: ./frontend
+    build:
+      context: ./frontend
+      args:
+        NEXT_PUBLIC_VAPI_WEB_TOKEN: 40559987-a6c0-4160-bd90-7cf727686d5b
+        NEXT_PUBLIC_VAPI_WORKFLOW_ID: 5679977c-8cb2-46d2-abe8-ecb1d43bd2b3
+        NEXT_PUBLIC_API_URL: /api/backend
     container_name: degree_planner_frontend
     ports:
       - "3000:3000"
@@ -68,9 +73,11 @@ services:
       # Relative URL: browser calls /api/backend/... which Next.js proxies to the backend container
       # This makes the app work for ANY device anywhere in the world via Ngrok
       NEXT_PUBLIC_API_URL: /api/backend
-      # Internal Docker network URL for the server-side proxy in next.config.ts
+      OLLAMA_BASE_URL: http://host.docker.internal:11434
       BACKEND_INTERNAL_URL: http://backend:8000
       GOOGLE_APPLICATION_CREDENTIALS: /app/firebase-credentials.json
+      NEXT_PUBLIC_VAPI_WEB_TOKEN: 40559987-a6c0-4160-bd90-7cf727686d5b
+      NEXT_PUBLIC_VAPI_WORKFLOW_ID: 5679977c-8cb2-46d2-abe8-ecb1d43bd2b3
     volumes:
       - ./prepwise-638a9-firebase-adminsdk-fbsvc-94f37c1f27.json:/app/firebase-credentials.json
     depends_on:

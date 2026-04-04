@@ -104,17 +104,9 @@ async def analyze_document(
     
     if existing_doc:
         doc_id = existing_doc.id
-        if existing_doc.analysis_result:
-            return DocumentAnalysisResponse(
-                subject=existing_doc.analysis_result.get("subject", "Unknown"),
-                topics=existing_doc.analysis_result.get("topics", []),
-                revision_plan=existing_doc.analysis_result.get("revision_plan", ""),
-                estimated_hours=existing_doc.analysis_result.get("estimated_hours", 0),
-                key_concepts=existing_doc.analysis_result.get("key_concepts", []),
-                filename=filename,
-                file_type=file_type,
-                document_id=doc_id
-            )
+        # Cache bypass: We skip the early return to force a fresh analysis during testing/development
+        # if existing_doc.analysis_result:
+        #     return DocumentAnalysisResponse(...)
     else:
         # Save to local disk (in a real app, use S3. Here, local uploads dir)
         safe_filename = f"{uuid.uuid4()}_{filename}"
