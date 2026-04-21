@@ -34,6 +34,7 @@ class DegreePlan(Base):
     # Additional metadata for history display
     degree_program: Mapped[Optional[str]] = mapped_column(String(200), nullable=True)
     career_goal: Mapped[Optional[str]] = mapped_column(String(200), nullable=True)
+    ai_analysis: Mapped[Optional[Dict[str, Any]]] = mapped_column(JSON, nullable=True)
     
     # Full course data for complete restoration
     courses_data: Mapped[List[Dict[str, Any]]] = mapped_column(JSON, default=list)

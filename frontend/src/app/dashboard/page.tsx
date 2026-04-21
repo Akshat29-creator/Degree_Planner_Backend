@@ -11,7 +11,6 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
-import { AuthGuard } from "@/components/auth/auth-guard";
 import { FeatureGate } from "@/components/feature-gate";
 import { useAuth } from "@/context/auth-context";
 import { cn } from "@/lib/utils";
@@ -63,7 +62,6 @@ export default function DashboardPage() {
 
     return (
         <FeatureGate featureKey="page_dashboard" featureName="Dashboard">
-        <AuthGuard>
             <div className="min-h-screen bg-[#050510] pb-28 md:pb-12">
                 <div className="container mx-auto max-w-7xl px-4 py-6 pt-6 md:pt-32">
 
@@ -253,7 +251,6 @@ export default function DashboardPage() {
                     )}
                 </div>
             </div>
-        </AuthGuard>
         </FeatureGate>
     );
 }

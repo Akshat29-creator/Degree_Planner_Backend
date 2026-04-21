@@ -52,6 +52,7 @@ class PlanHistoryDetail(BaseModel):
     advisor_explanation: Optional[str] = None
     degree_program: Optional[str] = None
     career_goal: Optional[str] = None
+    ai_analysis: Optional[dict] = None
     courses_data: list = []
     data_source: Optional[str] = None
     created_at: datetime
@@ -74,6 +75,7 @@ class SavePlanRequest(BaseModel):
     advisor_explanation: Optional[str] = None
     degree_program: Optional[str] = None
     career_goal: Optional[str] = None
+    ai_analysis: Optional[dict] = None
     courses_data: list = []
     data_source: Optional[str] = None
 
@@ -136,6 +138,7 @@ async def save_plan(
         advisor_explanation=request.advisor_explanation,
         degree_program=request.degree_program,
         career_goal=request.career_goal,
+        ai_analysis=request.ai_analysis,
         courses_data=request.courses_data,
         data_source=request.data_source,
     )

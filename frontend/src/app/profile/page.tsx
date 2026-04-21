@@ -5,7 +5,6 @@ import { motion, AnimatePresence } from "framer-motion";
 import { getProfileIntelligence, getProfileData, UserProfile, ProfileResponse, resetDatabaseData } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { AuthGuard } from "@/components/auth/auth-guard";
 import { useAppStore } from "@/lib/store";
 import { useAuth } from "@/context/auth-context";
 import {
@@ -167,7 +166,6 @@ export default function ProfilePage() {
     const strength = calculateStrength();
 
     return (
-        <AuthGuard>
             <div className="min-h-screen bg-[#050510] relative pt-6 md:pt-32 pb-28 md:pb-12 px-4 sm:px-6">
 
                 {/* Background Decor */}
@@ -536,6 +534,5 @@ export default function ProfilePage() {
                     </div>
                 </div>
             </div>
-        </AuthGuard>
     );
 }

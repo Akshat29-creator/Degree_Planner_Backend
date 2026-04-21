@@ -1387,24 +1387,24 @@ export default function AdvisorPage() {
     if (courses.length === 0) {
         return (
             <FeatureGate featureKey="page_advisor" featureName="AI Advisor">
-            <div className="container mx-auto max-w-7xl px-4 py-12">
-                <div className="glass-card p-12 text-center">
-                    <GraduationCap className="w-16 h-16 text-purple-400 mx-auto mb-6" />
-                    <h2 className="text-2xl font-bold text-white mb-4">
-                        No Courses Loaded
-                    </h2>
-                    <p className="text-muted-foreground mb-6">
-                        Load demo data to get AI career advice.
-                    </p>
-                    <Button
-                        onClick={() => setCourses(demoCourses)}
-                        className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-400 hover:to-pink-400 text-white"
-                    >
-                        <Rocket className="mr-2 h-5 w-5" />
-                        Load Demo Data
-                    </Button>
+                <div className="container mx-auto max-w-7xl px-4 py-12">
+                    <div className="glass-card p-12 text-center">
+                        <GraduationCap className="w-16 h-16 text-purple-400 mx-auto mb-6" />
+                        <h2 className="text-2xl font-bold text-white mb-4">
+                            No Courses Loaded
+                        </h2>
+                        <p className="text-muted-foreground mb-6">
+                            Load demo data to get AI career advice.
+                        </p>
+                        <Button
+                            onClick={() => setCourses(demoCourses)}
+                            className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-400 hover:to-pink-400 text-white"
+                        >
+                            <Rocket className="mr-2 h-5 w-5" />
+                            Load Demo Data
+                        </Button>
+                    </div>
                 </div>
-            </div>
             </FeatureGate>
         );
     }

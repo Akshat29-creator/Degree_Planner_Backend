@@ -374,13 +374,14 @@ export default function PlannerPage() {
     const setCareerGoal = useAppStore((state) => state.setCareerGoal);
     const currentPlan = useAppStore((state) => state.currentPlan);
     const setCurrentPlan = useAppStore((state) => state.setCurrentPlan);
+    const aiAnalysis = useAppStore((state) => state.aiAnalysis);
+    const setAiAnalysis = useAppStore((state) => state.setAiAnalysis);
     const resetAllData = useAppStore((state) => state.resetAllData);
 
     // Local state
     const [isGenerating, setIsGenerating] = useState(false);
     const [isAnalyzing, setIsAnalyzing] = useState(false);
     const [isExporting, setIsExporting] = useState(false);
-    const [aiAnalysis, setAiAnalysis] = useState<AIPlanExplanation | null>(null);
     const [error, setError] = useState<string | null>(null);
     const [showUpload, setShowUpload] = useState(false);
     const [advisorMode, setAdvisorMode] = useState(false);
@@ -790,6 +791,7 @@ export default function PlannerPage() {
     // Onboarding wizard when no courses
     if (courses.length === 0 && !currentPlan) {
         return (
+
             <div className="container mx-auto max-w-5xl px-4 py-6 pt-6 md:pt-32 pb-28 md:pb-12">
                 <motion.div
                     initial={{ opacity: 0, y: 20 }}
@@ -1292,6 +1294,43 @@ export default function PlannerPage() {
                 true // Force refresh
             );
             setAiAnalysis(analysis);
+            
+            // Auto Update History
+            try {
+                let degreeDisplayName = customDegreeName;
+                if (!degreeDisplayName && selectedDegreeType) {
+                    const dType = degreeTypes.find(d => d.id === selectedDegreeType);
+                    const sType = specializationMap[selectedDegreeType]?.find(s => s.id === selectedSpecialization);
+                    if (dType) {
+                        degreeDisplayName = dType.name;
+                        if (sType) degreeDisplayName += ` in ${sType.name}`;
+                    }
+                }
+                if (!degreeDisplayName || degreeDisplayName.trim() === "") {
+                    degreeDisplayName = selectedDegree || "General Degree Plan";
+                }
+
+                await saveDegreePlan({
+                    name: `${degreeDisplayName} - Analysis`,
+                    semesters: currentPlan.degree_plan,
+                    completed_courses: completedCourses,
+                    priority_courses: priorityCourses,
+                    max_courses_per_semester: maxCoursesPerSemester,
+                    total_semesters: Object.keys(currentPlan.degree_plan).length,
+                    semester_difficulty: currentPlan.semester_difficulty,
+                    risk_analysis: currentPlan.risk_analysis,
+                    career_alignment_notes: currentPlan.career_alignment_notes,
+                    advisor_explanation: currentPlan.advisor_explanation,
+                    degree_program: degreeDisplayName,
+                    career_goal: careerGoal || undefined,
+                    ai_analysis: analysis,
+                    courses_data: courses,
+                    data_source: dataSource || "uploaded",
+                });
+            } catch (saveErr) {
+                console.error("Auto-update to history failed", saveErr);
+            }
+
             toast.success("Analysis complete!", { id: toastId });
         } catch (err) {
             console.error("Analysis failed:", err);

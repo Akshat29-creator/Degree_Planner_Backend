@@ -163,6 +163,8 @@ interface AppState {
     setCurrentPlan: (plan: PlanResponse | null) => void;
     analysisResults: any | null;
     setAnalysisResults: (results: any | null) => void;
+    aiAnalysis: import("@/lib/api").AIPlanExplanation | null;
+    setAiAnalysis: (analysis: import("@/lib/api").AIPlanExplanation | null) => void;
 
     // UI State
     isLoading: boolean;
@@ -255,6 +257,8 @@ export const useAppStore = create<AppState>()(
                     completedCourses: [],
                     priorityCourses: [],
                     currentPlan: null,
+                    analysisResults: null,
+                    aiAnalysis: null,
                 }),
 
             // Plan Configuration
@@ -282,6 +286,8 @@ export const useAppStore = create<AppState>()(
             setCurrentPlan: (currentPlan) => set({ currentPlan }),
             analysisResults: null,
             setAnalysisResults: (analysisResults) => set({ analysisResults }),
+            aiAnalysis: null,
+            setAiAnalysis: (aiAnalysis) => set({ aiAnalysis }),
 
             // UI State
             isLoading: false,
@@ -327,6 +333,7 @@ export const useAppStore = create<AppState>()(
                     careerGoal: "",
                     currentPlan: null,
                     analysisResults: null,
+                    aiAnalysis: null,
                     isLoading: false,
                     studySubjects: [],
                     studyAvailableHours: {
@@ -349,6 +356,8 @@ export const useAppStore = create<AppState>()(
                 maxCoursesPerSemester: state.maxCoursesPerSemester,
                 careerGoal: state.careerGoal,
                 currentPlan: state.currentPlan,
+                analysisResults: state.analysisResults,
+                aiAnalysis: state.aiAnalysis,
 
                 studySubjects: state.studySubjects,
                 studyAvailableHours: state.studyAvailableHours,

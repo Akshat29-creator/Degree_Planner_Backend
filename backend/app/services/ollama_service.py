@@ -448,7 +448,7 @@ Respond with ONLY this JSON format:
         # Force fast model for plan analysis — the 'analyze' keyword in the prompt
         # would otherwise trigger 14B routing, causing 3+ min responses and proxy timeouts.
         # The 8B model handles structured JSON plan analysis well in ~30s.
-        result = await self._call_ollama(prompt, model=settings.ollama_fast_model)
+        result = await self._call_ollama(prompt, model=settings.ollama_fast_model, think=False)
         parsed = self._extract_json(result)
         
         if parsed:
@@ -1029,7 +1029,7 @@ Do NOT add motivational language.
 Do NOT include emojis.
 """
 
-        result = await self._call_ollama(context_str, system_instruction=revision_system_prompt)
+        result = await self._call_ollama(context_str, system_instruction=revision_system_prompt, think=False)
         return result or "Unable to generate revision strategy. Ensure Ollama is running."
 
 
@@ -1347,7 +1347,7 @@ RULES:
         
         context += f"USER'S LATEST MESSAGE: {message}\n"
 
-        result = await self._call_ollama(context, system_instruction=system_prompt)
+        result = await self._call_ollama(context, system_instruction=system_prompt, think=False)
         
         if result:
             parsed = self._extract_json(result)

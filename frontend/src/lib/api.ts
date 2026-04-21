@@ -37,6 +37,7 @@ export interface PlanRequest {
     max_courses_per_semester: number;
     priority_courses: string[];
     career_goal?: string;
+    ai_analysis?: AIPlanExplanation;
     current_gpa?: number;
     weekly_work_hours?: number;
     failure_simulation?: FailureSimulation;
@@ -721,6 +722,7 @@ export interface SavePlanRequest {
     advisor_explanation?: string;
     degree_program?: string;
     career_goal?: string;
+    ai_analysis?: AIPlanExplanation;
     courses_data?: Course[];  // Full course objects for persistence
     data_source?: string;     // demo/uploaded/manual
 }
@@ -740,6 +742,7 @@ export interface PlanHistoryDetail {
     advisor_explanation?: string;
     degree_program?: string;
     career_goal?: string;
+    ai_analysis?: AIPlanExplanation;
     courses_data: Course[];   // Full course objects
     data_source?: string;     // demo/uploaded/manual
     created_at: string;

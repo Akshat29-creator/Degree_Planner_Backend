@@ -45,6 +45,7 @@ const Agent = ({
     const [messages, setMessages] = useState<SavedMessage[]>([]);
     const [isSpeaking, setIsSpeaking] = useState(false); // AI Speaking
     const [lastMessage, setLastMessage] = useState<string>("");
+    const [isGeneratingFeedback, setIsGeneratingFeedback] = useState(false);
 
     // For rendering scrolling transcript
     const scrollRef = useRef<HTMLDivElement>(null);
@@ -114,7 +115,8 @@ const Agent = ({
                     return;
                 }
 
-                // Show loading toast
+                setIsGeneratingFeedback(true);
+                // Show loading toast (optional, loading overlay is now main indicator)
                 const toastId = toast.loading("Analyzing interview performance...");
 
                 const { success, feedbackId: id } = await createInterviewFeedback({
@@ -136,6 +138,8 @@ const Agent = ({
             } catch (error) {
                 console.error("Error generating feedback:", error);
                 router.push("/interview");
+            } finally {
+                setIsGeneratingFeedback(false);
             }
         };
 
@@ -182,6 +186,20 @@ const Agent = ({
 
     return (
         <div className="flex flex-col h-[75vh] md:h-[600px] w-full bg-[#0a0a0f] rounded-3xl overflow-hidden border border-white/10 relative shadow-2xl">
+            {isGeneratingFeedback && (
+                <div className="absolute inset-0 z-50 bg-black/80 backdrop-blur-xl flex flex-col items-center justify-center">
+                    <div className="w-24 h-24 relative mb-8">
+                        <div className="absolute inset-0 border-4 border-purple-500/20 rounded-full"></div>
+                        <div className="absolute inset-0 border-4 border-purple-500 border-t-transparent rounded-full animate-spin"></div>
+                        <div className="absolute inset-0 flex items-center justify-center">
+                            <Cpu className="w-8 h-8 text-teal-400 animate-pulse" />
+                        </div>
+                    </div>
+                    <h3 className="text-2xl font-bold text-white mb-2 tracking-wide">Analyzing Interview</h3>
+                    <p className="text-zinc-400 animate-pulse">Generating your personalized feedback...</p>
+                </div>
+            )}
+            
             {/* Command Center Overlay */}
             <div className="absolute inset-0 pointer-events-none z-0">
                 <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-purple-500/50 to-transparent opacity-20" />

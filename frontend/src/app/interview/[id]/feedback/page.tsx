@@ -112,13 +112,13 @@ export default function FeedbackPage() {
     if (loading) {
         return (
             <main className="min-h-screen pt-32 pb-20 px-4 flex items-center justify-center bg-[#050510]">
-                <div className="text-center">
-                    <div className="w-16 h-16 rounded-full bg-purple-500/20 flex items-center justify-center mx-auto mb-4 animate-pulse">
-                        <Star className="w-8 h-8 text-purple-400" />
+                    <div className="text-center">
+                        <div className="w-16 h-16 rounded-full bg-purple-500/20 flex items-center justify-center mx-auto mb-4 animate-pulse">
+                            <Star className="w-8 h-8 text-purple-400" />
+                        </div>
+                        <p className="text-gray-400">Analyzing Performance...</p>
                     </div>
-                    <p className="text-gray-400">Analyzing Performance...</p>
-                </div>
-            </main>
+                </main>
         );
     }
 
