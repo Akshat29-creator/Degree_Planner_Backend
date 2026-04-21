@@ -4,6 +4,8 @@
 
 <h1 align="center">Degree Planner Agent</h1>
 
+> **Version 3.0** — April 2026
+
 <p align="center">
   <strong>The Intelligent Academic Trajectory Optimizer</strong><br/>
   Powered by Local LLM Inference
@@ -22,7 +24,7 @@
   <img src="https://img.shields.io/badge/Backend-FastAPI-009688?style=flat-square&logo=fastapi" alt="Backend" />
   <img src="https://img.shields.io/badge/Database-PostgreSQL%2016-336791?style=flat-square&logo=postgresql" alt="Database" />
   <img src="https://img.shields.io/badge/Runtime-Ollama-white?style=flat-square" alt="Runtime" />
-  <img src="https://img.shields.io/badge/Model-llama3.1%3A8b-purple?style=flat-square" alt="Model" />
+  <img src="https://img.shields.io/badge/Model-qwen3%3A8b-purple?style=flat-square" alt="Model" />
 </p>
 
 <p align="center">
@@ -79,12 +81,15 @@ Degree Planner Agent is a full-stack web application that helps university stude
 
 **Core Capabilities:**
 - Generate valid semester-by-semester degree plans
-- Analyze plans for career alignment and workload balance
+- Analyze plans for career alignment and workload balance, with full AI analysis persisted to history
 - Practice and self-test on study materials with AI-generated questions
 - Receive AI-powered explanations of academic topics
 - Track test performance over time
+- Feature-flag gated access control for all major pages
 
 **Key Constraint:** All AI processing happens locally via Ollama. No student data is transmitted to external AI providers.
+
+**Performance Model:** The system uses a dual-model routing strategy — a fast model (`qwen3:8b-q4_K_M`) for low-latency structured tasks and a reasoning model for complex multi-step analysis. Thinking mode (`/think`) is selectively disabled on latency-critical endpoints.
 
 ---
 
@@ -113,6 +118,7 @@ This project addresses these problems with:
 - Prerequisite validation using topological sorting
 - Workload balancing across semesters
 - Exam-aware planning with difficulty estimates
+- **AI analysis results are now fully persisted** to plan history (`ai_analysis` JSON field), allowing complete restoration of insights when revisiting a saved plan
 
 ### Revision Practice and Self-Test Engine
 - AI-generated questions from user-provided study materials
@@ -125,14 +131,15 @@ This project addresses these problems with:
 ### Academic Tutor
 - Topic explanations generated from user notes
 - Document analysis for PDFs and presentations
-- Revision strategy generation
+- **Revision strategy generation** with thinking mode disabled for faster responses
 
 ### AI Study Buddy
 - Conversational interface for study motivation
 - Behavioral support and stress management suggestions
 - Context-aware responses based on user progress
+- **Optimized for low latency** — thinking mode disabled for direct conversational responses
 
-### AI Interview Coach (NEW)
+### AI Interview Coach
 - AI-powered mock interview practice with voice interaction
 - Technical, behavioral, and mixed interview types
 - Customizable questions by role, level, and tech stack
@@ -146,6 +153,12 @@ This project addresses these problems with:
 - OAuth support (Google, GitHub)
 - Onboarding wizard for profile setup
 - Persistent user preferences and goals
+
+### Feature Flag System (FeatureGate)
+- All major pages are individually gated by server-side feature flags
+- Disabled features display a locked UI with the flag key for diagnostics
+- Replaces the previous `AuthGuard` component for a unified access-control model
+- Feature flags are checked via the `useFeatureFlags()` context hook
 
 ---
 
@@ -184,13 +197,15 @@ This project addresses these problems with:
 |-------|------------|---------|
 | Frontend | Next.js 14 | User interface, client routing, state management |
 | Backend | FastAPI | REST API, business logic, request validation |
-| Database | PostgreSQL | User data, plans, test results |
-| AI Inference | Ollama | Local LLM execution |
+| Database | PostgreSQL | User data, plans, test results, documents |
+| AI Inference | Ollama | Local LLM execution (dual-model routing) |
+| Feature Flags | FeatureGate | Per-page access control via context API |
 
 **Communication:**
 - Frontend to Backend: REST/JSON over HTTPS
 - Backend to Database: SQLAlchemy async sessions
 - Backend to Ollama: HTTP POST to localhost:11434
+- Feature gating: `useFeatureFlags()` context → `FeatureGate` component wrapper
 
 ---
 
@@ -204,17 +219,37 @@ Each feature has dedicated prompt templates and output schemas. This design:
 - Isolates failures (question generation failure does not affect plan analysis)
 - Allows independent tuning and testing
 
-### Why llama3.1:8b is Sufficient
+### Dual-Model Routing
 
-| Requirement | llama3.1:8b Capability |
-|-------------|------------------------|
+The system routes requests between two models based on task requirements:
+
+| Route | Model | Use Case |
+|-------|-------|----------|
+| Fast | `qwen3:8b-q4_K_M` | Plan analysis, revision strategy, buddy chat |
+| Reasoning | `qwen3:8b-q4_K_M` | Complex multi-step plan generation |
+| Embeddings | `nomic-embed-text` | RAG document similarity search |
+
+### Why qwen3:8b-q4_K_M is Used
+
+| Requirement | qwen3:8b-q4_K_M Capability |
+|-------------|----------------------------|
 | JSON Output | Native instruction following |
-| Context Window | 8192 tokens |
-| Reasoning | Adequate for educational Q&A |
+| Context Window | 8192+ tokens |
+| Reasoning | Strong for educational Q&A |
 | Latency | Sub-30s on RTX 4060 8GB |
 | Memory | Fits in 8GB VRAM (quantized) |
+| Think Mode | Supports `/think` for extended reasoning |
 
-Larger models provide marginal accuracy improvements but require hardware most students do not have.
+### Performance Optimization: Thinking Mode Control
+
+The `_call_ollama()` service accepts a `think` parameter. Thinking mode is **selectively disabled** (`think=False`) on latency-critical endpoints to avoid 3+ minute response times:
+
+| Endpoint | Thinking | Reason |
+|----------|----------|--------|
+| Plan Analysis (`analyze_plan`) | Disabled | Uses fast model; thinking would add 3+ min |
+| Revision Strategy | Disabled | User-facing, needs fast response |
+| Study Buddy Chat | Disabled | Conversational, requires low latency |
+| Profile Intelligence | Disabled | Chat interface, direct response needed |
 
 ### Why AI Runs Locally
 
@@ -409,19 +444,27 @@ degree_planner_agent/
 │   ├── app/
 │   │   ├── models/           # SQLAlchemy models
 │   │   │   ├── user.py       # User and Profile
-│   │   │   ├── plan.py       # Degree plans
+│   │   │   ├── plan.py       # Degree plans (incl. ai_analysis JSON)
+│   │   │   ├── document.py   # Uploaded documents
 │   │   │   └── test_result.py # Test history
 │   │   ├── routers/          # API endpoints
 │   │   │   ├── auth.py       # Registration, login
 │   │   │   ├── planner.py    # Plan CRUD
 │   │   │   ├── practice.py   # Question generation, evaluation
 │   │   │   ├── revision.py   # Document analysis
+│   │   │   ├── history.py    # Plan, document & test history
+│   │   │   ├── flags.py      # Feature flag management
 │   │   │   └── ai.py         # Plan analysis, advisor
 │   │   ├── schemas/          # Pydantic models
 │   │   ├── services/
-│   │   │   └── ollama_service.py  # All AI interactions
+│   │   │   ├── ollama_service.py   # All AI interactions (think param support)
+│   │   │   ├── model_pipeline.py   # Dual-model warmup and health checks
+│   │   │   ├── model_router.py     # Fast vs reasoning model routing
+│   │   │   └── rag_service.py      # Retrieval-augmented generation
 │   │   ├── utils/
-│   │   │   └── security.py   # JWT, password hashing
+│   │   │   ├── security.py   # JWT, password hashing
+│   │   │   └── cache.py      # Request caching utilities
+│   │   ├── config.py         # Settings (dual-model, embed model config)
 │   │   ├── database.py       # DB connection
 │   │   └── main.py           # FastAPI app
 │   └── requirements.txt
@@ -433,6 +476,10 @@ degree_planner_agent/
 │   │   │   ├── revision/
 │   │   │   ├── advisor/
 │   │   │   ├── buddy/
+│   │   │   ├── history/
+│   │   │   ├── performance/
+│   │   │   ├── study/
+│   │   │   ├── graph/
 │   │   │   ├── interview/      # AI Interview Coach
 │   │   │   │   ├── page.tsx    # Interview dashboard
 │   │   │   │   ├── [id]/       # Dynamic interview session
@@ -447,8 +494,11 @@ degree_planner_agent/
 │   │   │   │   ├── Agent.tsx         # Voice agent
 │   │   │   │   ├── InterviewCard.tsx # Session cards
 │   │   │   │   └── DisplayTechIcons.tsx
+│   │   │   ├── feature-gate.tsx   # Feature flag gating component
 │   │   │   └── ui/           # Design system
-│   │   ├── context/          # Auth context
+│   │   ├── context/
+│   │   │   ├── auth-context.tsx          # Auth state
+│   │   │   └── feature-flags-context.tsx # Feature flag state
 │   │   └── lib/              # API client, utilities
 │   └── package.json
 ├── docker-compose.yml
@@ -574,11 +624,18 @@ Frontend runs at: http://localhost:3000
 ### Backend (.env in backend/)
 
 ```env
-DATABASE_URL=postgresql+asyncpg://postgres:postgres@localhost:5432/degree_planner
+DATABASE_URL=postgresql+asyncpg://planner:plannerdev@localhost:5432/degree_planner
 SECRET_KEY=your-secret-key-here
 ACCESS_TOKEN_EXPIRE_MINUTES=1440
-OLLAMA_BASE_URL=http://localhost:11434
-OLLAMA_MODEL=llama3.1:8b
+OLLAMA_BASE_URL=http://127.0.0.1:11434
+
+# Dual-model routing
+OLLAMA_FAST_MODEL=qwen3:8b-q4_K_M
+OLLAMA_REASONING_MODEL=qwen3:8b-q4_K_M
+OLLAMA_EMBED_MODEL=nomic-embed-text
+
+# Legacy alias (kept for backwards compat)
+OLLAMA_MODEL=qwen3:8b-q4_K_M
 ```
 
 ### Frontend (.env.local in frontend/)
@@ -616,7 +673,9 @@ volumes:
 |-------|---------|
 | users | User accounts (email, password hash, provider) |
 | profiles | Academic profile (university, major, goals) |
-| test_results | Practice and self-test history |
+| degree_plans | Saved plans including full `ai_analysis` JSON blob |
+| test_results | Practice and self-test history with question and feedback JSON |
+| uploaded_documents | User-uploaded study documents (PDF/PPT) with extracted text and analysis |
 
 ### Running Migrations
 
@@ -633,6 +692,7 @@ Tables are auto-created on backend startup via SQLAlchemy's `create_all()`.
 | /api/auth/register | POST | Create account |
 | /api/auth/login | POST | Obtain JWT token |
 | /api/auth/me | GET | Get current user |
+| /api/auth/social-login | POST | OAuth login (Google, GitHub) |
 
 ### Practice and Self-Test
 
@@ -657,7 +717,23 @@ Tables are auto-created on backend startup via SQLAlchemy's `create_all()`.
 | /api/revision/analyze-document | POST | Extract topics from PDF |
 | /api/revision/strategy | POST | Generate revision plan |
 
-### Interview (NEW)
+### Plan History
+
+| Endpoint | Method | Purpose |
+|----------|--------|---------|
+| /api/history | GET | List all saved plans |
+| /api/history | POST | Save plan (with `ai_analysis`) |
+| /api/history/{id} | GET | Get plan detail |
+| /api/history/{id} | DELETE | Delete saved plan |
+| /api/history/reset-all-data | DELETE | Wipe all user data + reset profile |
+| /api/history/documents | GET | List uploaded documents |
+| /api/history/documents/{id} | GET | Get document details |
+| /api/history/documents/{id} | DELETE | Delete document |
+| /api/history/tests | GET | List test results |
+| /api/history/tests/{id} | GET | Get test details |
+| /api/history/tests/{id} | DELETE | Delete test result |
+
+### Interview
 
 | Endpoint | Method | Purpose |
 |----------|--------|---------|
@@ -673,15 +749,23 @@ Full API documentation available at `/docs` when backend is running.
 
 ## 14. AI Models Used
 
-### Runtime Model
+### Runtime Models
 
-| Model | llama3.1:8b |
-|-------|-------------|
+| Role | Model | Purpose |
+|------|-------|---------|
+| Fast / Default | `qwen3:8b-q4_K_M` | Plan analysis, revision, buddy chat |
+| Reasoning | `qwen3:8b-q4_K_M` | Complex multi-step plan generation |
+| Embeddings | `nomic-embed-text` | RAG document similarity search |
+
+**Fast model characteristics:**
+
+| Property | Value |
+|----------|-------|
 | Parameters | 8 billion |
-| Quantization | Q4_0 |
+| Quantization | Q4_K_M |
 | VRAM Required | ~6-8 GB |
-| Context Window | 8192 tokens |
-| Use Cases | All runtime AI features |
+| Context Window | 8192+ tokens |
+| Think Mode | Supported (selectively disabled) |
 
 ### Model Configuration
 
@@ -692,11 +776,12 @@ Full API documentation available at `/docs` when backend is running.
     "top_p": 0.95,
     "num_ctx": 8192,
     "num_predict": 4096,
-    "keep_alive": 0  # Unload after response
+    "keep_alive": 0,  # Unload after response
+    "think": False    # Disabled on latency-critical endpoints
 }
 ```
 
-The `keep_alive: 0` setting ensures the model is unloaded from GPU memory after each response, freeing resources when idle.
+The `keep_alive: 0` setting ensures the model is unloaded from GPU memory after each response. The `think: False` flag skips Qwen3's extended reasoning chain, reducing response time from 3+ minutes to ~30 seconds on structured tasks.
 
 ### Documentation Generation
 

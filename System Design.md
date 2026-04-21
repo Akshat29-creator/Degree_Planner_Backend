@@ -2,8 +2,8 @@
 
 ---
 
-**Version**: 2.0  
-**Last Updated**: January 2026  
+**Version**: 3.0  
+**Last Updated**: April 2026  
 **Authors**: Engineering Team  
 **Status**: Production  
 
@@ -53,9 +53,12 @@ The platform encompasses six core functional domains:
 | Frontend | Next.js 14 | Server-rendered React application |
 | Backend | FastAPI | Async Python REST API |
 | Database | PostgreSQL | Relational data persistence |
-| AI Runtime | Ollama | Local LLM inference |
+| AI Runtime | Ollama | Local LLM inference (dual-model routing) |
 | Voice AI | VAPI | Real-time voice interview agents |
-| Model | llama3.1:8b | Primary reasoning model |
+| Fast Model | qwen3:8b-q4_K_M | Primary structured output model |
+| Reasoning Model | qwen3:8b-q4_K_M | Complex multi-step reasoning |
+| Embed Model | nomic-embed-text | RAG document embeddings |
+| Feature Control | FeatureGate | Per-page access control component |
 
 ---
 
@@ -207,7 +210,8 @@ Backend  <---> Ollama:     HTTP POST to localhost:11434
 
 | Component | Path | Purpose |
 |-----------|------|---------|
-| AuthGuard | `/components/auth/` | Route protection, token validation |
+| FeatureGate | `/components/feature-gate.tsx` | Per-page feature flag gating (replaces AuthGuard) |
+| AuthGuard | `/components/auth/` | Legacy component (superseded by FeatureGate) |
 | Navbar | `/components/layout/` | Navigation, user context display |
 | PracticePanel | `/components/revision/` | Question generation and self-test UI |
 | PlannerGraph | `/app/graph/` | Interactive prerequisite visualization |
@@ -215,6 +219,8 @@ Backend  <---> Ollama:     HTTP POST to localhost:11434
 | InterviewPage | `/app/interview/` | Interview dashboard and session management |
 | Agent | `/components/interview/` | VAPI voice agent for mock interviews |
 | InterviewCard | `/components/interview/` | Interview session display cards |
+
+**FeatureGate Design:** Each page is wrapped in `<FeatureGate featureKey="page_xxx">`. If the flag is disabled, a full-screen locked UI is shown with the flag key for diagnostics. The gate reads from the `useFeatureFlags()` context hook which fetches flags server-side.
 
 ### 5.2 Backend Routers
 
@@ -226,17 +232,36 @@ Backend  <---> Ollama:     HTTP POST to localhost:11434
 | revision | `/api/revision` | 3 | Document analysis, topic extraction |
 | ai | `/api/ai` | 4 | Plan analysis, career advice, explanations |
 | courses | `/api/courses` | 4 | Course catalog operations |
-| history | `/api/history` | 3 | Plan history management |
+| history | `/api/history` | 11 | Plan, document & test history management |
+| flags | `/api/flags` | 2+ | Feature flag CRUD (admin & read) |
 | manual_entry | `/api/manual-entry` | 2 | Transcript parsing |
 | interview | `/api/interview` | 5 | Mock interview sessions, feedback |
 | vapi | `/api/vapi` | 2 | VAPI voice agent integration |
+
+**History Router Endpoints (expanded):**
+
+| Endpoint | Method | Purpose |
+|----------|--------|---------|
+| `/api/history` | GET | List saved plans |
+| `/api/history` | POST | Save plan (accepts `ai_analysis` JSON) |
+| `/api/history/{id}` | GET | Plan detail |
+| `/api/history/{id}` | DELETE | Delete plan |
+| `/api/history/reset-all-data` | DELETE | Wipe all user data and reset profile |
+| `/api/history/documents` | GET | List uploaded documents |
+| `/api/history/documents/{id}` | GET/DELETE | Document detail / deletion |
+| `/api/history/tests` | GET | List test results |
+| `/api/history/tests/{id}` | GET/DELETE | Test detail / deletion |
 
 ### 5.3 Service Layer
 
 | Service | File | Methods | Purpose |
 |---------|------|---------|---------|
-| OllamaService | `ollama_service.py` | 12 | All AI inference operations |
+| OllamaService | `ollama_service.py` | 12+ | All AI inference operations (with `think` param) |
+| ModelPipeline | `model_pipeline.py` | 4+ | Dual-model warmup, health checks |
+| ModelRouter | `model_router.py` | 2 | Fast vs reasoning model routing logic |
+| RAGService | `rag_service.py` | - | Retrieval-augmented generation |
 | SecurityUtils | `security.py` | 6 | JWT handling, password hashing |
+| CacheUtils | `utils/cache.py` | - | Request caching utilities |
 
 ---
 
@@ -620,14 +645,16 @@ practice.py
 ollama_service.py
 ├── Configuration
 │   ├── base_url: str (OLLAMA_BASE_URL)
-│   ├── model: str (OLLAMA_MODEL)
+│   ├── fast_model: str (OLLAMA_FAST_MODEL)      # e.g. qwen3:8b-q4_K_M
+│   ├── reasoning_model: str (OLLAMA_REASONING_MODEL)
 │   └── timeout: float (180.0s)
 │
 ├── Core Method
-│   └── _call_ollama(prompt, system_instruction)
+│   └── _call_ollama(prompt, system_instruction, model=None, think=None)
 │       ├── Build request payload
 │       ├── Set options (temperature, num_ctx, num_predict)
 │       ├── Set keep_alive: 0 (unload after response)
+│       ├── Set think flag — False on latency-critical paths
 │       ├── POST to /api/generate
 │       └── Return response text
 │
@@ -637,23 +664,35 @@ ollama_service.py
 │       ├── Multiple extraction attempts
 │       └── Return parsed dict or None
 │
-├── AI Features (12 methods)
-│   ├── analyze_plan()          # Comprehensive degree plan analysis
-│   ├── get_career_advice()     # Career-aligned recommendations
-│   ├── analyze_burnout()       # Semester difficulty assessment
-│   ├── generate_study_plan()   # Time-based study scheduling
-│   ├── explain_topic()         # Topic explanation from notes
-│   ├── analyze_document()      # PDF/PPT content extraction
-│   ├── generate_revision_strategy()  # Personalized revision plan
+├── AI Features (12+ methods) with selective think=False
+│   ├── analyze_plan()                # think=False (uses fast model, avoids timeout)
+│   ├── get_career_advice()           # Career-aligned recommendations
+│   ├── analyze_burnout()             # Semester difficulty assessment
+│   ├── generate_study_plan()         # Time-based study scheduling
+│   ├── explain_topic()               # Topic explanation from notes
+│   ├── analyze_document()            # PDF/PPT content extraction
+│   ├── generate_revision_strategy()  # think=False (user-facing, latency sensitive)
 │   ├── generate_practice_questions() # Question generation
-│   ├── evaluate_answers()      # Semantic answer evaluation
-│   ├── study_buddy_chat()      # Motivational conversation
-│   ├── validate_plan()         # Prerequisite validation
-│   └── suggest_courses()       # Course recommendations
+│   ├── evaluate_answers()            # Semantic answer evaluation
+│   ├── study_buddy_chat()            # think=False (conversational, must be fast)
+│   ├── get_profile_intelligence()    # think=False (direct chat response)
+│   ├── validate_plan()               # Prerequisite validation
+│   └── suggest_courses()             # Course recommendations
 │
 └── Singleton Instance
     └── ollama_service = OllamaService()
 ```
+
+**Thinking Mode Strategy:**
+
+Qwen3 models support a `/think` reasoning chain that improves accuracy but adds significant latency. The system selectively disables it:
+
+| Method | think | Reason |
+|--------|-------|--------|
+| `analyze_plan` | False | Fast model path — thinking causes proxy timeouts |
+| `generate_revision_strategy` | False | User-facing streaming response |
+| `study_buddy_chat` | False | Low-latency conversational requirement |
+| `get_profile_intelligence` | False | Chat interface expects direct reply |
 
 ### 7.4 Mode-Locking Implementation
 
@@ -867,7 +906,31 @@ Security Utilities
         |                            | completed_onboarding |
         |                            +------------------+
         |
-        | 1:N
+        | 1:N (degree_plans)
+        v
++------------------+
+|   degree_plans   |
++------------------+
+| id (INT PK)      |
+| user_id (FK)     |
+| name             |
+| semesters (JSON) |
+| completed_courses|
+| priority_courses |
+| semester_difficulty |
+| risk_analysis (JSON) |
+| career_alignment_notes |
+| advisor_explanation |
+| degree_program   |
+| career_goal      |
+| ai_analysis (JSON) |  <-- NEW
+| courses_data (JSON) |
+| data_source      |
+| created_at       |
+| updated_at       |
++------------------+
+
+        | 1:N (test_results)
         v
 +------------------+
 |   test_results   |
@@ -882,8 +945,26 @@ Security Utilities
 | percentage       |
 | performance_level|
 | questions_json   |
+| feedback_json    |
+| mcq_count        |
+| short_count      |
+| long_count       |
 | created_at       |
 +------------------+
+
+        | 1:N (uploaded_documents)
+        v
++---------------------+
+|  uploaded_documents |
++---------------------+
+| id (INT PK)         |
+| user_id (FK)        |
+| filename            |
+| file_type           |
+| extracted_text      |
+| analysis_result (JSON) |
+| created_at          |
++---------------------+
 ```
 
 ### 9.2 Table Definitions
@@ -913,7 +994,29 @@ Security Utilities
 | preferences | JSON | DEFAULT {} | UI/planning preferences |
 | completed_onboarding | BOOLEAN | DEFAULT FALSE | Onboarding completion flag |
 
-**test_results**
+**degree_plans** *(primary plan storage)*
+
+| Column | Type | Constraints | Purpose |
+|--------|------|-------------|---------|
+| id | INTEGER | PK, AUTO_INCREMENT | Unique identifier |
+| user_id | INTEGER | FK(users.id), NULLABLE, INDEX | Owner |
+| name | VARCHAR(200) | NOT NULL | Plan display name |
+| semesters | JSON | NOT NULL | Course schedule per semester |
+| completed_courses | JSON | DEFAULT [] | Already completed courses |
+| priority_courses | JSON | DEFAULT [] | Courses to schedule first |
+| semester_difficulty | JSON | DEFAULT {} | Difficulty ratings per semester |
+| risk_analysis | JSON | NULLABLE | Risk flags from advisor |
+| career_alignment_notes | TEXT | NULLABLE | Career notes |
+| advisor_explanation | TEXT | NULLABLE | Advisor explanation text |
+| degree_program | VARCHAR(200) | NULLABLE | Degree program label |
+| career_goal | VARCHAR(200) | NULLABLE | Career goal label |
+| **ai_analysis** | **JSON** | **NULLABLE** | **Full AI analysis blob — persisted from planner (NEW)** |
+| courses_data | JSON | DEFAULT [] | Full course objects for exact restoration |
+| data_source | VARCHAR(50) | NULLABLE | demo/uploaded/manual |
+| created_at | TIMESTAMP | DEFAULT NOW() | Creation time |
+| updated_at | TIMESTAMP | DEFAULT NOW() | Last update time |
+
+**test_results** *(expanded)*
 
 | Column | Type | Constraints | Purpose |
 |--------|------|-------------|---------|
@@ -927,7 +1030,23 @@ Security Utilities
 | percentage | FLOAT | DEFAULT 0 | Score as percentage |
 | performance_level | VARCHAR | DEFAULT 'Average' | Weak/Average/Strong |
 | questions_json | JSON | NULLABLE | Full question and answer data |
+| feedback_json | JSON | NULLABLE | Per-question AI feedback |
+| mcq_count | INTEGER | DEFAULT 0 | MCQ question count |
+| short_count | INTEGER | DEFAULT 0 | Short answer count |
+| long_count | INTEGER | DEFAULT 0 | Long answer count |
 | created_at | TIMESTAMP | DEFAULT NOW() | Test completion time |
+
+**uploaded_documents** *(new table)*
+
+| Column | Type | Constraints | Purpose |
+|--------|------|-------------|---------|
+| id | INTEGER | PK, AUTO_INCREMENT | Unique identifier |
+| user_id | INTEGER | FK(users.id), INDEX | Owner |
+| filename | VARCHAR | NOT NULL | Original file name |
+| file_type | VARCHAR | NOT NULL | pdf/pptx/etc. |
+| extracted_text | TEXT | NULLABLE | Raw extracted text content |
+| analysis_result | JSON | NULLABLE | Topics and structure extracted by AI |
+| created_at | TIMESTAMP | DEFAULT NOW() | Upload time |
 
 ### 9.3 Design Rationale
 
@@ -1047,21 +1166,41 @@ AI Processing:
 Output: Structured feedback with scores and next_steps
 ```
 
-### 10.6 Why llama3.1:8b is Sufficient
+### 10.6 Why qwen3:8b-q4_K_M is Sufficient
 
-| Requirement | llama3.1:8b Capability |
-|-------------|------------------------|
+| Requirement | qwen3:8b-q4_K_M Capability |
+|-------------|----------------------------|
 | JSON Output | Native instruction following |
-| Context Window | 8192 tokens (adequate for single topic) |
-| Reasoning | Sufficient for educational Q&A |
-| Latency | Sub-30s on RTX 4060 8GB |
+| Context Window | 8192+ tokens (adequate for single topic) |
+| Reasoning | Strong for educational Q&A |
+| Latency | Sub-30s on RTX 4060 8GB (think=False) |
 | Memory | Fits in 8GB VRAM quantized |
-| Accuracy | Acceptable for formative assessment |
+| Accuracy | Strong for formative assessment |
+| Think Mode | `/think` available for complex reasoning |
 
 **Why Not Larger Models?**
 - 13B+ models exceed typical consumer GPU memory
 - Marginal accuracy improvement not justified for educational use
 - Latency increases significantly
+
+### 10.7 Dual-Model Architecture
+
+```
+Request
+  |
+  v
+[ModelRouter]
+  |
+  +----> fast_model (qwen3:8b-q4_K_M)      — plan analysis, buddy, revision
+  |         think=False on latency paths
+  |
+  +----> reasoning_model (qwen3:8b-q4_K_M) — complex generation
+  |         think enabled for accuracy
+  |
+  +----> embed_model (nomic-embed-text)     — RAG similarity search
+
+[ModelPipeline] handles warmup and health checks at startup
+```
 
 ### 10.7 Why Antigravity is NOT Used in Runtime
 
@@ -1391,9 +1530,12 @@ Phase 5: Event-Driven Architecture (async processing)
 
 | Variable | Default | Description |
 |----------|---------|-------------|
-| OLLAMA_BASE_URL | http://localhost:11434 | Ollama server endpoint |
-| OLLAMA_MODEL | llama3.1:8b | Model identifier |
-| DATABASE_URL | postgresql://... | PostgreSQL connection string |
+| OLLAMA_BASE_URL | http://127.0.0.1:11434 | Ollama server endpoint |
+| OLLAMA_FAST_MODEL | qwen3:8b-q4_K_M | Fast/default model identifier |
+| OLLAMA_REASONING_MODEL | qwen3:8b-q4_K_M | Reasoning model identifier |
+| OLLAMA_EMBED_MODEL | nomic-embed-text | Embeddings model for RAG |
+| OLLAMA_MODEL | qwen3:8b-q4_K_M | Legacy alias (backwards compat) |
+| DATABASE_URL | postgresql://planner:plannerdev@... | PostgreSQL connection string |
 | SECRET_KEY | (generated) | JWT signing key |
 | ACCESS_TOKEN_EXPIRE_MINUTES | 1440 | Token validity period |
 
