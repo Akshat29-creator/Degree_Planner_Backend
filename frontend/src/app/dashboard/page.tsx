@@ -3,17 +3,18 @@
 import { motion } from "framer-motion";
 import { useAppStore } from "@/lib/store";
 import { useRouter } from "next/navigation";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import {
     BookOpen, Award, Calendar, TrendingUp, ArrowRight,
     Sparkles, Brain, Mic, GitBranch, ChevronRight,
-    Repeat, Clock, Grid3X3
+    Repeat, Clock, Grid3X3, CheckCircle2
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { FeatureGate } from "@/components/feature-gate";
 import { useAuth } from "@/context/auth-context";
 import { cn } from "@/lib/utils";
+import { getSpacedRepetitionStatus, SpacedRepetitionItem } from "@/lib/api";
 
 export default function DashboardPage() {
     const router = useRouter();
@@ -22,6 +23,44 @@ export default function DashboardPage() {
     const completedCourses = useAppStore((state) => state.completedCourses);
     const remainingSemesters = useAppStore((state) => state.remainingSemesters);
     const currentPlan = useAppStore((state) => state.currentPlan);
+
+    const [srsItems, setSrsItems] = useState<SpacedRepetitionItem[]>([]);
+    const [loadingSrs, setLoadingSrs] = useState(true);
+
+    useEffect(() => {
+        const fetchSrs = async () => {
+            try {
+                const data = await getSpacedRepetitionStatus(false);
+                setSrsItems(data);
+            } catch (err) {
+                console.error("Failed to fetch spaced repetition items:", err);
+            } finally {
+                setLoadingSrs(false);
+            }
+        };
+        fetchSrs();
+    }, []);
+
+    const formatRelativeTime = (dateString?: string | null): string => {
+        if (!dateString) return "Not scheduled";
+        const date = new Date(dateString);
+        const now = new Date();
+        const diffMs = date.getTime() - now.getTime();
+        const diffMin = Math.round(diffMs / 60000);
+        const diffHours = Math.round(diffMs / 3600000);
+        const diffDays = Math.round(diffMs / 86400000);
+
+        if (diffMs <= 0) {
+            return "Due now";
+        }
+        if (diffMin < 60) {
+            return `Due in ${diffMin} min${diffMin > 1 ? "s" : ""}`;
+        }
+        if (diffHours < 24) {
+            return `Due in ${diffHours} hour${diffHours > 1 ? "s" : ""}`;
+        }
+        return `Due in ${diffDays} day${diffDays > 1 ? "s" : ""}`;
+    };
 
     const totalCourses = courses.length;
     const totalCredits = courses.reduce((sum, c) => sum + c.credits, 0);
@@ -35,6 +74,9 @@ export default function DashboardPage() {
     // Estimate semester progress based on course completion
     const initialSemesters = courses.length ? Math.ceil(courses.length / 5) : 0;
     const semestersProgress = initialSemesters ? Math.max(0, 100 - Math.round((remainingSemesters / initialSemesters) * 100)) : 0;
+
+    const dueItems = srsItems.filter(item => item.is_due);
+    const upcomingItems = srsItems.filter(item => !item.is_due);
 
     const metrics = [
         { icon: BookOpen,  label: "Courses",    value: totalCourses,   progress: completionPct, color: "text-teal-400", bg: "bg-teal-500/10", stroke: "stroke-teal-500" },
@@ -174,6 +216,147 @@ export default function DashboardPage() {
                                     <span className="text-xs text-zinc-500">Courses completed</span>
                                     <span className="text-xs font-medium text-teal-400">{completionPct}%</span>
                                 </div>
+                            </motion.div>
+
+                            {/* ── Active Recall (Spaced Repetition) Widget ── */}
+                            <motion.div
+                                initial={{ opacity: 0, y: 20 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ delay: 0.35 }}
+                                className="glass-card p-6 md:p-8 mb-6 md:mb-10 relative overflow-hidden"
+                            >
+                                <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-teal-500 via-blue-500 to-indigo-500"></div>
+                                <div className="flex items-center justify-between mb-6">
+                                    <div className="flex items-center gap-3">
+                                        <div className="p-2 rounded-xl bg-teal-500/10 border border-teal-500/20 text-teal-400">
+                                            <Brain className="h-5 w-5 animate-pulse" />
+                                        </div>
+                                        <div>
+                                            <h2 className="text-lg md:text-xl font-bold text-white flex items-center gap-2">
+                                                Active Recall & Daily Review
+                                            </h2>
+                                            <p className="text-xs text-zinc-400">Scientifically scheduled revision using the SM-2 algorithm</p>
+                                        </div>
+                                    </div>
+                                    {dueItems.length > 0 && (
+                                        <span className="bg-rose-500/10 text-rose-400 border border-rose-500/25 px-2.5 py-1 rounded-full text-xs font-bold animate-pulse">
+                                            {dueItems.length} Due Now
+                                        </span>
+                                    )}
+                                </div>
+
+                                {loadingSrs ? (
+                                    <div className="flex items-center justify-center py-8">
+                                        <div className="w-6 h-6 border-2 border-teal-500/20 border-t-teal-400 rounded-full animate-spin"></div>
+                                    </div>
+                                ) : srsItems.length === 0 ? (
+                                    <div className="flex flex-col items-center justify-center py-8 text-center bg-white/[0.02] border border-white/5 rounded-2xl p-6">
+                                        <div className="w-12 h-12 rounded-full bg-zinc-800 flex items-center justify-center mb-3">
+                                            <Clock className="w-6 h-6 text-zinc-500" />
+                                        </div>
+                                        <h3 className="text-sm font-semibold text-zinc-300">No scheduled reviews</h3>
+                                        <p className="text-xs text-zinc-500 mt-1 max-w-sm">Take a practice test on any study material to initialize the Spaced Repetition tracker.</p>
+                                    </div>
+                                ) : (
+                                    <div className="space-y-6">
+                                        {/* Due Section */}
+                                        {dueItems.length > 0 ? (
+                                            <div className="space-y-3">
+                                                <div className="text-xs font-bold text-zinc-400 uppercase tracking-widest px-1">Due Today</div>
+                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                    {dueItems.map((item, idx) => {
+                                                        const isStrong = item.percentage >= 80 || (item.performance_level && (item.performance_level.toLowerCase().includes("strong") || item.performance_level.toLowerCase().includes("excellent")));
+                                                        const isGood = item.percentage >= 65 || (item.performance_level && item.performance_level.toLowerCase().includes("good"));
+                                                        const isAverage = item.percentage >= 45 || (item.performance_level && item.performance_level.toLowerCase().includes("average"));
+                                                        
+                                                        const badgeColor = isStrong 
+                                                            ? "text-emerald-400 bg-emerald-500/10 border-emerald-500/20" 
+                                                            : isGood
+                                                                ? "text-blue-400 bg-blue-500/10 border-blue-500/20"
+                                                                : isAverage
+                                                                    ? "text-amber-400 bg-amber-500/10 border-amber-500/20"
+                                                                    : "text-rose-400 bg-rose-500/10 border-rose-500/20";
+                                                        
+                                                        return (
+                                                            <motion.div
+                                                                key={idx}
+                                                                whileHover={{ y: -2 }}
+                                                                className="relative bg-white/[0.03] hover:bg-white/[0.06] border border-white/5 hover:border-white/10 p-4 rounded-2xl flex flex-col justify-between transition-all group"
+                                                            >
+                                                                <div>
+                                                                    <div className="flex justify-between items-start gap-2 mb-2">
+                                                                        <h3 className="font-semibold text-white text-sm md:text-base group-hover:text-teal-400 transition-colors line-clamp-1">
+                                                                            {item.topic_name}
+                                                                        </h3>
+                                                                        <span className={cn("px-2 py-0.5 rounded-md text-[10px] font-bold border shrink-0 uppercase", badgeColor)}>
+                                                                            {item.percentage}% {item.performance_level || "Average"}
+                                                                        </span>
+                                                                    </div>
+                                                                    <div className="flex items-center gap-3 text-[11px] text-zinc-500 mb-4">
+                                                                        <span className="flex items-center gap-1">
+                                                                            <Repeat className="w-3 h-3" /> Reps: {item.repetitions}
+                                                                        </span>
+                                                                        <span>•</span>
+                                                                        <span>
+                                                                            Factor: {item.ease_factor.toFixed(2)}
+                                                                        </span>
+                                                                        <span>•</span>
+                                                                        <span>
+                                                                            Interval: {item.interval}d
+                                                                        </span>
+                                                                    </div>
+                                                                </div>
+                                                                
+                                                                <Button
+                                                                    onClick={() => router.push(`/study?topic=${encodeURIComponent(item.topic_name)}&docId=${item.document_id || ''}`)}
+                                                                    className="w-full py-2 bg-gradient-to-r from-teal-500 to-cyan-500 hover:from-teal-400 hover:to-cyan-400 text-black font-bold text-xs rounded-xl shadow-md transition-all active:scale-[0.98]"
+                                                                >
+                                                                    Review Now
+                                                                </Button>
+                                                            </motion.div>
+                                                        );
+                                                    })}
+                                                </div>
+                                            </div>
+                                        ) : (
+                                            /* All caught up */
+                                            <div className="flex items-center gap-4 bg-emerald-500/5 border border-emerald-500/10 p-4 rounded-2xl">
+                                                <div className="w-10 h-10 rounded-full bg-emerald-500/15 flex items-center justify-center text-emerald-400 shrink-0">
+                                                    <CheckCircle2 className="w-5 h-5" />
+                                                </div>
+                                                <div>
+                                                    <h3 className="text-sm font-bold text-white">All caught up!</h3>
+                                                    <p className="text-xs text-zinc-400">Excellent job. No scheduled review topics are currently due.</p>
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {/* Upcoming Section */}
+                                        {upcomingItems.length > 0 && (
+                                            <div className="space-y-3 pt-2">
+                                                <div className="text-xs font-bold text-zinc-400 uppercase tracking-widest px-1">Upcoming Reviews</div>
+                                                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+                                                    {upcomingItems.slice(0, 3).map((item, idx) => {
+                                                        return (
+                                                            <div
+                                                                key={idx}
+                                                                className="bg-white/[0.01] border border-white/5 p-3 rounded-xl flex items-center justify-between"
+                                                            >
+                                                                <div className="min-w-0 pr-2">
+                                                                    <h4 className="text-xs font-semibold text-zinc-300 truncate">{item.topic_name}</h4>
+                                                                    <p className="text-[10px] text-zinc-500 mt-0.5">{formatRelativeTime(item.next_review_at)}</p>
+                                                                </div>
+                                                                <span className="text-[10px] font-mono bg-white/5 text-zinc-400 px-1.5 py-0.5 rounded border border-white/5 shrink-0">
+                                                                    {item.percentage}%
+                                                                </span>
+                                                            </div>
+                                                        );
+                                                    })}
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
                             </motion.div>
 
                             {/* ── Quick Actions: Horizontal scroll chips on mobile ── */}

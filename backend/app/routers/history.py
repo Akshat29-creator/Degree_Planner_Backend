@@ -55,6 +55,7 @@ class PlanHistoryDetail(BaseModel):
     ai_analysis: Optional[dict] = None
     courses_data: list = []
     data_source: Optional[str] = None
+    completed_course_grades: dict = {}
     created_at: datetime
     updated_at: datetime
     
@@ -78,6 +79,7 @@ class SavePlanRequest(BaseModel):
     ai_analysis: Optional[dict] = None
     courses_data: list = []
     data_source: Optional[str] = None
+    completed_course_grades: dict = {}
 
 
 # ==========================================
@@ -129,6 +131,7 @@ async def save_plan(
         name=request.name,
         semesters=request.semesters,
         completed_courses=request.completed_courses,
+        completed_course_grades=request.completed_course_grades,
         priority_courses=request.priority_courses,
         max_courses_per_semester=request.max_courses_per_semester,
         total_semesters=request.total_semesters,

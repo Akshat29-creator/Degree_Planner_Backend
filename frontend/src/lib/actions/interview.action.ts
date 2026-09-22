@@ -139,14 +139,16 @@ Return ONLY this JSON (no markdown, no extra text):
     ${qaPromptData.map((_: any, i: number) => `{"question": "exact question ${i+1}", "userAnswer": "what candidate said", "idealAnswer": "ideal 2-4 sentence answer"}`).join(',\n    ')}
   ]
 }`,
-                system: "You are a supportive interview evaluator and coach. Return ONLY valid JSON with the exact structure requested. No markdown, no extra text.",
+                system: "You are a supportive interview evaluator and coach. Return ONLY valid JSON with the exact structure requested. No markdown, no extra text. Do not output thinking tags.",
                 stream: false,
+                think: false,      // Thinking mode OFF for fast response
+                keep_alive: "60m", // Keep model warm in VRAM
                 options: {
                     temperature: 0.5,
-                    num_predict: 6000,
-                    num_ctx: 12288,
+                    num_predict: 6000, // Preserves high output token count
+                    num_ctx: 8192,     // 8K context to fit 100% in GPU VRAM
                     num_gpu: 99,       // Use all available GPU layers
-                    num_batch: 512,    // Larger batch size for better GPU throughput
+                    num_batch: 512,    // Batch size for fast GPU prompt evaluation
                 }
             }),
         });
@@ -367,11 +369,13 @@ IMPORTANT RULES:
 
 Return ONLY a valid JSON array of questions, no other text:
 ["Question 1?", "Question 2?", "Question 3?"]`,
-                system: "You are a professional interview question generator. Return ONLY valid JSON arrays. No explanations, no markdown, just the JSON array.",
+                system: "You are a professional interview question generator. Return ONLY valid JSON arrays. No explanations, no markdown, just the JSON array. Do not output thinking tags.",
                 stream: false,
+                keep_alive: "60m",
                 options: {
                     temperature: 0.7,
-                    num_predict: 2048,
+                    num_ctx: 8192,
+                    num_predict: 4096,
                     num_gpu: 99,
                     num_batch: 512,
                 }

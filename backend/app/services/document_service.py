@@ -13,6 +13,20 @@ import fitz
 from pptx import Presentation
 
 
+def clean_extracted_text(text: str) -> str:
+    """
+    Clean and sanitize extracted text for database storage and LLM consumption.
+    PostgreSQL UTF-8 rejects null bytes (0x00), which frequently appear in PDF font streams.
+    """
+    if not text:
+        return ""
+    # Strip null bytes
+    text = text.replace("\x00", "")
+    # Normalize isolated unicode surrogates
+    text = text.encode("utf-8", "replace").decode("utf-8")
+    return text.strip()
+
+
 def extract_text_from_pdf(file_content: bytes) -> str:
     """Extract text from a PDF file."""
     text = ""
@@ -23,7 +37,7 @@ def extract_text_from_pdf(file_content: bytes) -> str:
         doc.close()
     except Exception as e:
         raise ValueError(f"Failed to extract text from PDF: {e}")
-    return text.strip()
+    return clean_extracted_text(text)
 
 
 def extract_text_from_pptx(file_content: bytes) -> str:
@@ -37,7 +51,7 @@ def extract_text_from_pptx(file_content: bytes) -> str:
                     text += shape.text + "\n"
     except Exception as e:
         raise ValueError(f"Failed to extract text from PPTX: {e}")
-    return text.strip()
+    return clean_extracted_text(text)
 
 
 def extract_text(file_content: bytes, filename: str) -> Tuple[str, str]:

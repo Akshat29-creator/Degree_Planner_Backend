@@ -26,6 +26,8 @@ interface FeatureFlags {
   assessment: boolean;
   debug_mode: boolean;
   mock_ai_responses: boolean;
+  transcript_import: boolean;
+  gpa_simulator: boolean;
 }
 
 const DEFAULT_FLAGS: FeatureFlags = {
@@ -52,6 +54,8 @@ const DEFAULT_FLAGS: FeatureFlags = {
   assessment: true,
   debug_mode: false,
   mock_ai_responses: false,
+  transcript_import: true,
+  gpa_simulator: true,
 };
 
 const FeatureFlagsContext = createContext<FeatureFlags>(DEFAULT_FLAGS);

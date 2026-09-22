@@ -1,15 +1,17 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { motion } from "framer-motion";
 import { Badge } from "@/components/ui/badge";
-import { Map, Calendar, ChevronRight, GraduationCap, ChevronDown } from "lucide-react";
+import { Map as MapIcon, Calendar, ChevronRight, GraduationCap, ChevronDown, AlertTriangle } from "lucide-react";
 import { cn } from "@/lib/utils";
+import type { Course } from "@/lib/api";
 
-export function VisualRoadmap({ plan, difficulty, courses }: {
+export function VisualRoadmap({ plan, difficulty, courses = [], completedCourses = [] }: {
     plan: Record<string, string[]>;
     difficulty: Record<string, string>;
-    courses?: { code: string; credits: number }[];
+    courses?: Course[];
+    completedCourses?: string[];
 }) {
     const [expandedSem, setExpandedSem] = useState<string | null>(null);
 
@@ -40,6 +42,65 @@ export function VisualRoadmap({ plan, difficulty, courses }: {
     const totalCourses = sortedSemesters.reduce((sum, [, c]) => sum + c.length, 0);
     const graduationYear = new Date().getFullYear() + Object.keys(semestersByYear).length;
 
+    // Derived: Map course code to column ID (semester_x, completed, unscheduled)
+    const courseToColId = useMemo(() => {
+        const mapping: Record<string, string> = {};
+        completedCourses.forEach(code => {
+            mapping[code] = "completed";
+        });
+        Object.entries(plan).forEach(([semId, semCourses]) => {
+            semCourses.forEach(code => {
+                if (!completedCourses.includes(code)) {
+                    mapping[code] = semId;
+                }
+            });
+        });
+        return mapping;
+    }, [plan, completedCourses]);
+
+    // Helper to check if a semester number is earlier
+    const isSemesterEarlier = (semA: string | undefined, semB: string | undefined) => {
+        if (!semA) return false;
+        if (!semB) return true;
+        if (semA === "completed") return true;
+        if (semB === "completed") return false;
+        if (semA === "unscheduled") return false;
+        if (semB === "unscheduled") return true;
+        const numA = parseInt(semA.replace("semester_", "")) || 0;
+        const numB = parseInt(semB.replace("semester_", "")) || 0;
+        return numA < numB;
+    };
+
+    // Derived: Course Code to details map
+    const courseDetailsMap = useMemo(() => {
+        return new Map((courses || []).map(c => [c.code, c]));
+    }, [courses]);
+
+    // Compute conflict alerts for each course code in the plan
+    const courseConflicts = useMemo(() => {
+        const conflictsMap: Record<string, string[]> = {};
+        
+        (courses || []).forEach(course => {
+            const courseSem = courseToColId[course.code];
+            if (!courseSem || courseSem === "completed" || courseSem === "unscheduled") return;
+            
+            course.prerequisites.forEach(prereq => {
+                const prereqSem = courseToColId[prereq];
+                if (!prereqSem || prereqSem === "unscheduled" || !isSemesterEarlier(prereqSem, courseSem)) {
+                    if (!conflictsMap[course.code]) {
+                        conflictsMap[course.code] = [];
+                    }
+                    const prereqLocation = prereqSem === "completed" ? "Completed" : 
+                                           prereqSem === "unscheduled" ? "Unscheduled" : 
+                                           prereqSem ? prereqSem.replace("semester_", "Semester ") : "Unscheduled";
+                    conflictsMap[course.code].push(`${prereq} (scheduled in ${prereqLocation})`);
+                }
+            });
+        });
+        
+        return conflictsMap;
+    }, [courses, courseToColId]);
+
     return (
         <div className="p-6 md:p-8 rounded-[2.5rem] bg-[#0a0a16]/80 backdrop-blur-2xl border border-white/5 shadow-2xl relative overflow-hidden group/card shadow-violet-500/5">
             <div className="absolute inset-0 bg-gradient-to-b from-violet-500/5 via-transparent to-cyan-500/5 opacity-0 group-hover/card:opacity-100 transition-opacity duration-1000" />
@@ -48,7 +109,7 @@ export function VisualRoadmap({ plan, difficulty, courses }: {
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-12 relative z-10">
                 <div className="flex items-center gap-4">
                     <div className="p-3.5 rounded-2xl bg-zinc-900 ring-1 ring-white/10 shadow-xl">
-                        <Map className="h-6 w-6 text-violet-400" />
+                        <MapIcon className="h-6 w-6 text-violet-400" />
                     </div>
                     <div>
                         <h3 className="text-xl md:text-2xl font-black text-white tracking-tight">
@@ -71,7 +132,6 @@ export function VisualRoadmap({ plan, difficulty, courses }: {
 
                 {Object.entries(semestersByYear).map(([yearStr, semesters], yearIndex) => {
                     const year = parseInt(yearStr);
-                    const isEvenYear = year % 2 === 0; // Alignment toggle for desktop (optional, implementing centered spine)
 
                     return (
                         <motion.div
@@ -95,10 +155,9 @@ export function VisualRoadmap({ plan, difficulty, courses }: {
                                 </div>
                             </div>
 
-                            <div className="flex flex-col gap-4 -mx-4 px-4 md:mx-0 md:px-0 md:grid md:grid-cols-2 md:gap-12 lg:gap-16">
+                            <div className="flex flex-col gap-6 -mx-4 px-4 md:mx-0 md:px-0 md:grid md:grid-cols-2 md:gap-12 lg:gap-16">
                                 {semesters.map((sem, semIndex) => {
                                     const diff = difficulty[sem.id] || "Moderate";
-                                    const isRight = semIndex % 2 !== 0; // Simple L/R split for grid
 
                                     // Visual Config
                                     const diffConfig = {
@@ -113,8 +172,8 @@ export function VisualRoadmap({ plan, difficulty, courses }: {
                                             whileHover={{ y: -4 }}
                                             onClick={() => setExpandedSem(expandedSem === sem.id ? null : sem.id)}
                                             className={cn(
-                                                "relative p-5 rounded-3xl bg-[#0f0f1d] border border-white/5 hover:border-white/10 transition-all duration-300 group shadow-lg cursor-pointer md:cursor-default",
-                                                semIndex % 2 === 0 ? "md:mr-auto" : "md:ml-auto" // Push into columns if we want Zig Zag, but grid-cols-2 handles it naturally
+                                                "relative p-6 rounded-3xl bg-[#0f0f1d] border border-white/5 hover:border-white/10 transition-all duration-300 group shadow-lg cursor-pointer md:cursor-default",
+                                                semIndex % 2 === 0 ? "md:mr-auto" : "md:ml-auto"
                                             )}
                                         >
                                             <div className={cn(
@@ -123,7 +182,7 @@ export function VisualRoadmap({ plan, difficulty, courses }: {
                                             )} />
 
                                             {/* Semester Header */}
-                                            <div className="flex justify-between items-center relative z-10">
+                                            <div className="flex justify-between items-center relative z-10 mb-4">
                                                 <div>
                                                     <div className="flex items-center gap-2">
                                                         <Badge variant="secondary" className="bg-white/5 hover:bg-white/10 text-white border-0 text-[10px] font-bold uppercase tracking-wider px-2 py-0.5">
@@ -143,16 +202,68 @@ export function VisualRoadmap({ plan, difficulty, courses }: {
                                             {/* Accordion Body */}
                                             <div className={cn(
                                                 "overflow-hidden transition-all duration-300 ease-in-out md:block",
-                                                expandedSem === sem.id ? "max-h-[1000px] mt-4 opacity-100" : "max-h-0 opacity-0 md:max-h-[1000px] md:mt-4 md:opacity-100"
+                                                expandedSem === sem.id ? "max-h-[1500px] opacity-100" : "max-h-0 opacity-0 md:max-h-[1500px] md:opacity-100"
                                             )}>
                                                 {/* Courses */}
-                                                <div className="space-y-2 relative z-10">
-                                                    {sem.courses.map((code, idx) => (
-                                                        <div key={idx} className="flex items-center gap-3 p-2.5 rounded-xl bg-black/20 border border-white/5 hover:bg-white/5 transition-colors group/item">
-                                                            <div className={cn("w-1.5 h-1.5 rounded-full shadow-[0_0_8px_currentColor]", diffConfig.text)} />
-                                                            <span className="text-xs font-bold text-zinc-300 group-hover/item:text-white transition-colors">{code}</span>
-                                                        </div>
-                                                    ))}
+                                                <div className="space-y-3 relative z-10">
+                                                    {sem.courses.map((code, idx) => {
+                                                         const courseInfo = courseDetailsMap.get(code);
+                                                         const conflictsList = courseConflicts[code];
+                                                         const hasConflict = !!conflictsList && conflictsList.length > 0;
+                                                         
+                                                         // Determine local difficulty for this specific course
+                                                         const cDiff = courseInfo?.difficulty === "Easy" ? "Easy" : courseInfo?.difficulty === "Hard" ? "Hard" : "Medium";
+                                                         const cDiffConfig = {
+                                                             Easy: { bg: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20", icon: "🌿" },
+                                                             Medium: { bg: "bg-amber-500/10 text-amber-400 border-amber-500/20", icon: "⚡" },
+                                                             Hard: { bg: "bg-rose-500/10 text-rose-400 border-rose-500/20", icon: "🔥" },
+                                                         }[cDiff];
+
+                                                         return (
+                                                             <div 
+                                                                 key={idx} 
+                                                                 className={cn(
+                                                                     "relative flex flex-col p-4 rounded-2xl bg-black/40 border hover:bg-black/60 transition-all duration-300 group/item backdrop-blur-sm",
+                                                                     hasConflict 
+                                                                         ? "border-red-500/30 hover:border-red-500/50 shadow-[0_0_15px_rgba(239,68,68,0.05)]" 
+                                                                         : "border-white/5 hover:border-white/10"
+                                                                 )}
+                                                             >
+                                                                 {/* Top Row: Code + Credits + Difficulty */}
+                                                                 <div className="flex items-center justify-between mb-2">
+                                                                     <span className="text-xs font-mono font-black text-zinc-300 group-hover/item:text-teal-400 transition-colors">
+                                                                         {code}
+                                                                     </span>
+                                                                     <div className="flex items-center gap-2">
+                                                                         <span className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider">
+                                                                             {courseInfo?.credits || 3} Cr
+                                                                         </span>
+                                                                         <span className={cn("text-[9px] font-bold px-1.5 py-0.5 rounded uppercase tracking-wide", cDiffConfig.bg)}>
+                                                                             {cDiffConfig.icon} {cDiff}
+                                                                         </span>
+                                                                     </div>
+                                                                 </div>
+
+                                                                 {/* Course Title */}
+                                                                 <h4 className="text-sm font-semibold text-zinc-400 leading-snug group-hover/item:text-white transition-colors">
+                                                                     {courseInfo?.name || "Course Title"}
+                                                                 </h4>
+
+                                                                 {/* Conflict Alerts */}
+                                                                 {hasConflict && (
+                                                                     <div className="mt-3 p-2.5 rounded-xl bg-red-950/20 border border-red-900/30 text-[10px] text-red-300 leading-normal flex flex-col gap-1">
+                                                                         <div className="flex items-center gap-1.5 font-bold uppercase tracking-wider text-red-400">
+                                                                             <AlertTriangle className="w-3.5 h-3.5 text-red-400" />
+                                                                             Prerequisite Conflict
+                                                                         </div>
+                                                                         <div className="pl-5 font-medium text-red-200/90">
+                                                                             Requires: {conflictsList.join(", ")}
+                                                                         </div>
+                                                                     </div>
+                                                                 )}
+                                                             </div>
+                                                         );
+                                                    })}
                                                 </div>
 
                                                 {/* Footer */}

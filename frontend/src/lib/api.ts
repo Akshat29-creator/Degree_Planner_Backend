@@ -343,6 +343,21 @@ export async function loadDemoCourses(): Promise<{
     return fetchAPI("/api/courses/demo/load");
 }
 
+export async function createCourse(course: {
+    code: string;
+    name: string;
+    credits: number;
+    prerequisites: string[];
+    semester_offered?: string;
+    difficulty_weight?: number;
+    description?: string;
+}): Promise<Course> {
+    return fetchAPI("/api/courses", {
+        method: "POST",
+        body: JSON.stringify(course),
+    });
+}
+
 // Plan API
 export async function generatePlan(request: PlanRequest): Promise<PlanResponse> {
     return fetchAPI("/api/plan/generate", {
@@ -713,6 +728,7 @@ export interface SavePlanRequest {
     name: string;
     semesters: Record<string, string[]>;
     completed_courses: string[];
+    completed_course_grades?: Record<string, string>;
     priority_courses: string[];
     max_courses_per_semester: number;
     total_semesters: number;
@@ -733,6 +749,7 @@ export interface PlanHistoryDetail {
     name: string;
     semesters: Record<string, string[]>;
     completed_courses: string[];
+    completed_course_grades?: Record<string, string>;
     priority_courses: string[];
     max_courses_per_semester: number;
     total_semesters: number;
@@ -747,6 +764,54 @@ export interface PlanHistoryDetail {
     data_source?: string;     // demo/uploaded/manual
     created_at: string;
     updated_at: string;
+}
+
+// ================================
+// GPA SIMULATOR TYPES & FUNCTIONS
+// ================================
+
+export interface GPASimulationRequest {
+    completed_course_grades: Record<string, string>;
+    courses_data: Course[];
+    semesters: Record<string, string[]>;
+    completed_courses: string[];
+    target_gpa: number;
+    gpa_scale?: string;
+    generate_advice?: boolean;
+}
+
+export interface GPAScenario {
+    projected_gpa: number;
+    status: "On Track" | "At Risk" | "Impossible" | "Exceeded";
+    description: string;
+}
+
+export interface GPARiskAlert {
+    type: "impossible_target" | "failed_prereq" | "high_workload_warning";
+    message: string;
+    course_code?: string;
+}
+
+export interface GPASimulationResponse {
+    current_cumulative_gpa: number;
+    completed_credits: number;
+    remaining_credits: number;
+    scenarios: {
+        optimistic: GPAScenario;
+        realistic: GPAScenario;
+        pessimistic: GPAScenario;
+    };
+    required_remaining_gpa: number;
+    recommended_grade_configs?: Record<string, string>;
+    risks: GPARiskAlert[];
+    advisor_advice?: string;
+}
+
+export async function simulateGPA(request: GPASimulationRequest): Promise<GPASimulationResponse> {
+    return fetchAPI("/api/gpa/simulate-gpa", {
+        method: "POST",
+        body: JSON.stringify(request),
+    });
 }
 
 export const saveDegreePlan = async (request: SavePlanRequest): Promise<void> => {
@@ -1013,11 +1078,92 @@ export const getAssessmentTests = async (): Promise<TestResultItem[]> => {
 export const getTestDetail = async (id: number): Promise<TestResultDetail> => {
     return fetchAPI(`/api/history/tests/${id}`);
 };
-
 export const deleteHistoryDocument = async (id: number): Promise<void> => {
     return fetchAPI(`/api/history/documents/${id}`, { method: "DELETE" });
 };
 
 export const deleteHistoryTest = async (id: number): Promise<void> => {
     return fetchAPI(`/api/history/tests/${id}`, { method: "DELETE" });
+};
+
+export interface SpacedRepetitionItem {
+    topic_name: string;
+    document_id?: number | null;
+    last_test_id: number;
+    percentage: number;
+    performance_level: string;
+    interval: number;
+    repetitions: number;
+    ease_factor: number;
+    next_review_at?: string | null;
+    is_due: boolean;
+    created_at: string;
+}
+
+export const getSpacedRepetitionStatus = async (dueOnly = false): Promise<SpacedRepetitionItem[]> => {
+    return fetchAPI(`/api/assessment/spaced-repetition/status?due_only=${dueOnly}`, { method: "GET" });
+};
+
+// ==========================================
+// TRANSCRIPT IMPORT (OPTION D)
+// ==========================================
+
+export interface ParsedCourse {
+    code: string;
+    name: string;
+    credits?: number;
+    grade?: string;
+    term?: string;
+    matched_in_catalog: boolean;
+}
+
+export interface TranscriptParseResponse {
+    degree_program?: string;
+    parsed_courses: ParsedCourse[];
+    unmatched_raw: string[];
+    total_credits: number;
+    extraction_method: string;
+    raw_text_preview: string;
+    warnings: string[];
+}
+
+export interface TranscriptStatusResponse {
+    service: string;
+    pymupdf_version: string;
+    ollama_online: boolean;
+    fast_model: string;
+    catalog_courses: number;
+    endpoints: string[];
+}
+
+export const uploadTranscript = async (file: File): Promise<TranscriptParseResponse> => {
+    const formData = new FormData();
+    formData.append("file", file);
+
+    const token = typeof window !== 'undefined' ? localStorage.getItem("auth_token") : null;
+    const response = await fetch(`${API_URL}/api/transcript/upload`, {
+        method: "POST",
+        headers: {
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: formData,
+    });
+
+    if (!response.ok) {
+        const error = await response.json().catch(() => ({ detail: "Failed to upload transcript" }));
+        throw new Error(error.detail || "Transcript upload failed");
+    }
+
+    return response.json();
+};
+
+export const parseTranscriptText = async (text: string): Promise<TranscriptParseResponse> => {
+    return fetchAPI("/api/transcript/parse-text", {
+        method: "POST",
+        body: JSON.stringify({ text }),
+    });
+};
+
+export const getTranscriptStatus = async (): Promise<TranscriptStatusResponse> => {
+    return fetchAPI("/api/transcript/status", { method: "GET" });
 };

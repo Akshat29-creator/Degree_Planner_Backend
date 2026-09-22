@@ -74,12 +74,10 @@ def is_reasoning_task(prompt: str) -> bool:
 def get_keep_alive(model: str) -> int | str:
     """
     Returns the keep_alive value for Ollama:
-      - Fast model: 600 → free VRAM 10 min after last use (was -1/permanent)
-      - Reasoning model: 300 → unloaded 5 min after last reasoning task
+    Uses settings.ollama_keep_alive (default 60m) to keep models warm in VRAM
+    and eliminate cold-start reload latency between user interactions.
     """
-    if model == settings.ollama_fast_model:
-        return 600   # 10-minute VRAM window — balances low latency vs GPU memory
-    return 300       # 5-minute window after last reasoning task
+    return settings.ollama_keep_alive
 
 
 

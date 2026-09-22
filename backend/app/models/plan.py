@@ -21,6 +21,7 @@ class DegreePlan(Base):
     
     # Input parameters used to generate plan
     completed_courses: Mapped[List[str]] = mapped_column(JSON, default=list)
+    completed_course_grades: Mapped[Dict[str, str]] = mapped_column(JSON, default=dict)
     priority_courses: Mapped[List[str]] = mapped_column(JSON, default=list)
     max_courses_per_semester: Mapped[int] = mapped_column(Integer, default=5)
     total_semesters: Mapped[int] = mapped_column(Integer, default=6)

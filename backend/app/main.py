@@ -7,6 +7,14 @@ A production-grade API for intelligent degree planning with:
 - Risk assessment
 - Calendar export
 """
+import sys
+if sys.platform == "win32":
+    try:
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+        sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+    except Exception:
+        pass
+
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -14,7 +22,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.config import get_settings
 from app.database import init_db
 from app.utils.cache import init_redis, close_redis
-from app.routers import courses_router, planner_router, ai_router, auth_router, revision_router, history_router, manual_entry_router, practice_router, flags_router
+from app.routers import courses_router, planner_router, ai_router, auth_router, revision_router, history_router, manual_entry_router, practice_router, flags_router, transcript_router, gpa_router
 from app.routers.assessment import router as assessment_router
 from app.routers.performance import router as performance_router
 from app.routers.pipeline import router as pipeline_router  # Multi-model AI pipeline
@@ -25,22 +33,22 @@ settings = get_settings()
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Manage application lifecycle - initialize database on startup."""
-    print("🚀 Starting Degree Planner API...")
+    print("[START] Starting Degree Planner API...")
     await init_db()
     await init_redis()
-    print("✅ Database initialized")
+    print("[OK] Database and Redis initialized")
     # Warm up the fast model so first request has no cold-start delay
     try:
         from app.services.model_pipeline import pipeline_service
         warmup = await pipeline_service.health_check()
         if warmup.get("ollama") == "online":
-            print(f"🤖 Ollama online — fast: {warmup.get('fast_model_available')}, reasoning: {warmup.get('reasoning_model_available')}")
+            print(f"[AI] Ollama online — fast: {warmup.get('fast_model_available')}, reasoning: {warmup.get('reasoning_model_available')}")
         else:
-            print("⚠️  Ollama not running — start with: ollama serve")
+            print("[WARN] Ollama not running — start with: ollama serve")
     except Exception as e:
-        print(f"⚠️  Model warm-up skipped: {e}")
+        print(f"[WARN] Model warm-up skipped: {e}")
     yield
-    print("👋 Shutting down...")
+    print("[STOP] Shutting down...")
     await close_redis()
 
 
@@ -88,6 +96,9 @@ app.include_router(flags_router, prefix="/api")  # /api/flags - Developer Tools
 app.include_router(assessment_router, prefix="/api") # /api/assessment/*
 app.include_router(performance_router, prefix="/api") # /api/performance/*
 app.include_router(pipeline_router, prefix="/api")   # /api/pipeline/* ← Multi-model pipeline
+app.include_router(transcript_router, prefix="/api") # /api/transcript/* ← Transcript Import (Option D)
+app.include_router(gpa_router, prefix="/api") # /api/gpa/* ← GPA Simulator (Option E)
+
 
 
 @app.get("/")

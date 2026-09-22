@@ -177,11 +177,9 @@ function TopicExplanationModal({
         setIsLoading(true);
         setView('learning'); // We use learning view to show loading state too
         try {
-            const manualTopicString = `Generate exactly ${mcqCount} MCQ, ${shortCount} short answer, and ${longCount} long answer questions about this specific topic: ${topicName}. Background context: ${subjectName}`;
-            
             const res = await generateAssessmentTest({
-                document_id: null,
-                manual_topics: manualTopicString,
+                document_id: docId || null,
+                manual_topics: topicName,
                 mcq_count: mcqCount,
                 short_count: shortCount,
                 long_count: longCount

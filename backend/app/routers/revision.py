@@ -91,7 +91,9 @@ async def analyze_document(
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     
-    if not extracted_text or len(extracted_text.strip()) < 50:
+    extracted_text = (extracted_text or "").replace("\x00", "").strip()
+
+    if not extracted_text or len(extracted_text) < 50:
         raise HTTPException(
             status_code=400,
             detail="Could not extract sufficient text from the document. The file may be image-based or empty."

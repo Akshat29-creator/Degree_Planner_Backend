@@ -56,12 +56,74 @@ function AssessmentContent() {
     // Initial load from URL params
     const [autoStartRequested, setAutoStartRequested] = useState(false);
 
+    // Declared before useEffect for clean referencing
+    const handleGenerate = async (
+        overrideInputType?: 'document' | 'manual',
+        overrideDocId?: number | null,
+        overrideManualTopic?: string
+    ) => {
+        const activeInputType = overrideInputType ?? inputType;
+        const activeDocId = overrideDocId !== undefined ? overrideDocId : uploadedDocId;
+        const activeManualTopic = overrideManualTopic ?? manualTopic;
+
+        if (activeInputType === 'document' && !selectedFile && !activeDocId) {
+            toast.error("Please upload a PDF or PPT file.");
+            return;
+        }
+        if (activeInputType === 'manual' && activeManualTopic.trim().length < 3) {
+            toast.error("Please provide a topic description.");
+            return;
+        }
+        if (mcqCount[0] === 0 && shortCount[0] === 0 && longCount[0] === 0) {
+            toast.error("Please select at least one question to generate.");
+            return;
+        }
+
+        setStep('GENERATING');
+        setLoadingMessage("AI is analyzing your content...");
+
+        try {
+            let docId = activeDocId;
+
+            // Upload file if new
+            if (activeInputType === 'document' && selectedFile && !docId) {
+                setLoadingMessage("Extracting text from document...");
+                const uploadRes = await uploadAssessmentDocument(selectedFile);
+                docId = uploadRes.document_id;
+                setUploadedDocId(docId);
+            }
+
+            setLoadingMessage("Crafting your personalized assessment...");
+            const res = await generateAssessmentTest({
+                document_id: activeInputType === 'document' ? docId : null,
+                manual_topics: activeManualTopic || null,
+                mcq_count: mcqCount[0],
+                short_count: shortCount[0],
+                long_count: longCount[0]
+            });
+
+            setTestResponse(res);
+            setUserAnswers({});
+            setStep('TESTING');
+        } catch (err: any) {
+            toast.error(err.message || "Failed to generate test.");
+            setStep('SETUP');
+        }
+    };
+
     useEffect(() => {
-        if (initDocId && initTopic && !autoStartRequested) {
-            setUploadedDocId(Number(initDocId));
-            setInputType('manual'); // Need to pass topic explicitly to focus AI on that topic
-            setManualTopic(`Generate a test about this specific topic: ${initTopic} extracted from Document ID ${initDocId}`);
+        if (initTopic && !autoStartRequested) {
             setAutoStartRequested(true);
+            const docId = initDocId ? Number(initDocId) : null;
+            const type = docId ? 'document' : 'manual';
+            const topicText = initTopic;
+
+            setUploadedDocId(docId);
+            setInputType(type);
+            setManualTopic(topicText);
+
+            // Trigger auto-start
+            handleGenerate(type, docId, topicText);
         }
     }, [initDocId, initTopic, autoStartRequested]);
 
@@ -77,52 +139,6 @@ function AssessmentContent() {
         accept: { 'application/pdf': ['.pdf'], 'application/vnd.ms-powerpoint': ['.ppt', '.pptx'] },
         maxFiles: 1 
     });
-
-    const handleGenerate = async () => {
-        if (inputType === 'document' && !selectedFile && !uploadedDocId) {
-            toast.error("Please upload a PDF or PPT file.");
-            return;
-        }
-        if (inputType === 'manual' && manualTopic.trim().length < 10) {
-            toast.error("Please provide a detailed topic description.");
-            return;
-        }
-        if (mcqCount[0] === 0 && shortCount[0] === 0 && longCount[0] === 0) {
-            toast.error("Please select at least one question to generate.");
-            return;
-        }
-
-        setStep('GENERATING');
-        setLoadingMessage("AI is analyzing your content...");
-
-        try {
-            let docId = uploadedDocId;
-
-            // Upload file if new
-            if (inputType === 'document' && selectedFile && !docId) {
-                setLoadingMessage("Extracting text from document...");
-                const uploadRes = await uploadAssessmentDocument(selectedFile);
-                docId = uploadRes.document_id;
-                setUploadedDocId(docId);
-            }
-
-            setLoadingMessage("Crafting your personalized assessment...");
-            const res = await generateAssessmentTest({
-                document_id: inputType === 'document' ? docId : null,
-                manual_topics: inputType === 'manual' ? manualTopic : null,
-                mcq_count: mcqCount[0],
-                short_count: shortCount[0],
-                long_count: longCount[0]
-            });
-
-            setTestResponse(res);
-            setUserAnswers({});
-            setStep('TESTING');
-        } catch (err: any) {
-            toast.error(err.message || "Failed to generate test.");
-            setStep('SETUP');
-        }
-    };
 
     const handleSubmitTest = async () => {
         if (!testResponse) return;
@@ -300,7 +316,7 @@ function AssessmentContent() {
                                 </div>
 
                                 <Button 
-                                    onClick={handleGenerate} 
+                                    onClick={() => handleGenerate()} 
                                     className="w-full mt-6 py-6 text-lg tracking-wide rounded-xl bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 shadow-lg shadow-violet-500/25"
                                 >
                                     <PlayCircle className="mr-2 h-5 w-5" /> Let's Begin

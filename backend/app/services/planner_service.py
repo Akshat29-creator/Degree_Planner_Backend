@@ -619,6 +619,7 @@ class DegreePlannerService:
         scheduled_count = sum(len(c) for c in semester_plan.values())
         remaining = total_courses - completed_count
         prereq_safety = (scheduled_count / remaining * 100) if remaining > 0 else 100
+        prereq_safety = max(0.0, min(100.0, prereq_safety))
         
         # Workload Balance (penalize heavy semesters)
         heavy_count = sum(1 for d in semester_difficulty.values() if d == "Heavy")
@@ -626,7 +627,7 @@ class DegreePlannerService:
         total_sems = len(semester_difficulty)
         if total_sems > 0:
             balance = 100 - (heavy_count * 20) + (light_count * 5)
-            balance = max(0, min(100, balance))
+            balance = max(0.0, min(100.0, balance))
         else:
             balance = 50
         
@@ -637,12 +638,14 @@ class DegreePlannerService:
             # Check average courses per semester (lower = more slack)
             avg_per_sem = scheduled_count / max(1, total_sems)
             recovery = 100 if avg_per_sem <= 4 else max(50, 100 - (avg_per_sem - 4) * 10)
+        recovery = max(0.0, min(100.0, recovery))
         
         # Graduation Slack (on track = 100, delayed = lower)
         if risk_analysis.graduation_risk == "On Track":
             grad_slack = 100
         else:
             grad_slack = max(20, 100 - len(unscheduled) * 10)
+        grad_slack = max(0.0, min(100.0, grad_slack))
         
         # Weighted combination
         confidence = (
@@ -651,6 +654,7 @@ class DegreePlannerService:
             recovery * 0.15 +
             grad_slack * 0.15
         )
+        confidence = max(0.0, min(100.0, confidence))
         
         breakdown = ConfidenceBreakdown(
             prerequisite_safety=round(prereq_safety, 1),

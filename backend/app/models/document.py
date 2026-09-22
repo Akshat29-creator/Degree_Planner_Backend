@@ -2,7 +2,7 @@
 Document Database Model for storing uploaded study materials.
 """
 from sqlalchemy import Column, Integer, String, Text, DateTime, ForeignKey, JSON
-from sqlalchemy.orm import relationship
+from sqlalchemy.orm import relationship, validates
 from sqlalchemy.sql import func
 from app.database import Base
 
@@ -22,6 +22,12 @@ class UploadedDocument(Base):
     
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+
+    @validates("extracted_text")
+    def validate_extracted_text(self, key, value):
+        if isinstance(value, str):
+            return value.replace("\x00", "")
+        return value
 
     # Relationships
     user = relationship("User", back_populates="documents")

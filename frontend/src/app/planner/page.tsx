@@ -50,6 +50,7 @@ import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import confetti from "canvas-confetti";
 import indianCourses from "@/data/indian-courses";
+import { getCachedAnalysis } from "@/data/cached-ai-analysis";
 import { FeatureGate } from "@/components/feature-gate";
 
 // Confetti celebration function
@@ -364,6 +365,7 @@ export default function PlannerPage() {
     const dataSource = useAppStore((state) => state.dataSource);
     const completedCourses = useAppStore((state) => state.completedCourses);
     const setCompletedCourses = useAppStore((state) => state.setCompletedCourses);
+    const completedCourseGrades = useAppStore((state) => state.completedCourseGrades);
     const priorityCourses = useAppStore((state) => state.priorityCourses);
     const setPriorityCourses = useAppStore((state) => state.setPriorityCourses);
     const remainingSemesters = useAppStore((state) => state.remainingSemesters);
@@ -760,6 +762,7 @@ export default function PlannerPage() {
                     career_goal: result.career_goal || undefined,
                     courses_data: courses,
                     data_source: dataSource || "manual",
+                    completed_course_grades: completedCourseGrades,
                 });
                 toast.success("Plan saved to history automatically!");
             } else {
@@ -1254,6 +1257,7 @@ export default function PlannerPage() {
                         career_goal: careerGoal || undefined,
                         courses_data: courses,
                         data_source: dataSource || "uploaded",
+                        completed_course_grades: completedCourseGrades,
                     });
                     toast.success("Plan saved to history!");
                 } else {
@@ -1280,19 +1284,33 @@ export default function PlannerPage() {
         setIsAnalyzing(true);
         const toastId = toast.loading(aiAnalysis ? "Refreshing analysis..." : "AI is analyzing your plan...");
         try {
-            const analysis = await analyzePlan(
-                currentPlan.degree_plan,
-                careerGoal || undefined,
-                courses.map(c => ({
-                    code: c.code,
-                    name: c.name,
-                    credits: c.credits,
-                    prerequisites: c.prerequisites,
-                    difficulty: c.difficulty as any
-                })),
-                advisorMode,
-                true // Force refresh
-            );
+            // ── Check if we have pre-cached analysis for this degree/specialization ──
+            const cached = getCachedAnalysis(selectedDegreeType, selectedSpecialization);
+            let analysis;
+
+            if (cached) {
+                // Serve cached data instantly (preset Indian course plans)
+                await new Promise(resolve => setTimeout(resolve, 5000)); // 5s loading UX
+                analysis = cached;
+                toast.success("Analysis ready (cached)!", { id: toastId });
+            } else {
+                // Call Ollama for uploaded / AI-generated / manual plans
+                analysis = await analyzePlan(
+                    currentPlan.degree_plan,
+                    careerGoal || undefined,
+                    courses.map(c => ({
+                        code: c.code,
+                        name: c.name,
+                        credits: c.credits,
+                        prerequisites: c.prerequisites,
+                        difficulty: c.difficulty as any
+                    })),
+                    advisorMode,
+                    true // Force refresh
+                );
+                toast.success("Analysis complete!", { id: toastId });
+            }
+
             setAiAnalysis(analysis);
             
             // Auto Update History
@@ -1326,12 +1344,11 @@ export default function PlannerPage() {
                     ai_analysis: analysis,
                     courses_data: courses,
                     data_source: dataSource || "uploaded",
+                    completed_course_grades: completedCourseGrades,
                 });
             } catch (saveErr) {
                 console.error("Auto-update to history failed", saveErr);
             }
-
-            toast.success("Analysis complete!", { id: toastId });
         } catch (err) {
             console.error("Analysis failed:", err);
             setError("AI Analysis failed to load. Please check if Ollama is running safely.");
@@ -2393,6 +2410,11 @@ export default function PlannerPage() {
                                                 <Brain className="mr-2 h-4 w-4" />
                                             )}
                                             Analyze with AI
+                                            {getCachedAnalysis(selectedDegreeType, selectedSpecialization) && (
+                                                <span className="ml-2 text-[10px] bg-teal-500/20 text-teal-400 border border-teal-500/30 rounded-full px-2 py-0.5 font-bold tracking-wide">
+                                                    ⚡ INSTANT
+                                                </span>
+                                            )}
                                         </Button>
                                         <Button
                                             onClick={handleDownloadData}
@@ -2430,6 +2452,7 @@ export default function PlannerPage() {
                                         plan={currentPlan.degree_plan}
                                         difficulty={currentPlan.semester_difficulty}
                                         courses={courses}
+                                        completedCourses={completedCourses}
                                     />
 
                                     {/* Skills Progression (NEW - Hackathon Feature) */}

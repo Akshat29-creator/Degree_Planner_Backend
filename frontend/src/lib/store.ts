@@ -149,6 +149,8 @@ interface AppState {
     // Plan Configuration
     completedCourses: string[];
     setCompletedCourses: (courses: string[]) => void;
+    completedCourseGrades: Record<string, string>;
+    setCompletedCourseGrades: (grades: Record<string, string>) => void;
     priorityCourses: string[];
     setPriorityCourses: (courses: string[]) => void;
     remainingSemesters: number;
@@ -232,6 +234,7 @@ export const useAppStore = create<AppState>()(
                     dataSource: "demo",
                     validationResult: validation,
                     completedCourses: ["CS101", "CS102"], // Demo completed courses
+                    completedCourseGrades: { "CS101": "A", "CS102": "B+" },
                     priorityCourses: [],
                     currentPlan: null,
                 });
@@ -255,6 +258,7 @@ export const useAppStore = create<AppState>()(
                     dataSource: null,
                     validationResult: null,
                     completedCourses: [],
+                    completedCourseGrades: {},
                     priorityCourses: [],
                     currentPlan: null,
                     analysisResults: null,
@@ -272,6 +276,8 @@ export const useAppStore = create<AppState>()(
                     set({ validationResult: validation });
                 }
             },
+            completedCourseGrades: {},
+            setCompletedCourseGrades: (completedCourseGrades) => set({ completedCourseGrades }),
             priorityCourses: [],
             setPriorityCourses: (priorityCourses) => set({ priorityCourses }),
             remainingSemesters: 6,
@@ -327,6 +333,7 @@ export const useAppStore = create<AppState>()(
                     validationResult: null,
                     courses: [],
                     completedCourses: [],
+                    completedCourseGrades: {},
                     priorityCourses: [],
                     remainingSemesters: 6,
                     maxCoursesPerSemester: 5,
@@ -351,6 +358,7 @@ export const useAppStore = create<AppState>()(
                 courses: state.courses,
                 dataSource: state.dataSource,
                 completedCourses: state.completedCourses,
+                completedCourseGrades: state.completedCourseGrades,
                 priorityCourses: state.priorityCourses,
                 remainingSemesters: state.remainingSemesters,
                 maxCoursesPerSemester: state.maxCoursesPerSemester,

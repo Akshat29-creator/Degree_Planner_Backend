@@ -159,7 +159,7 @@ function PerformanceEngine() {
                 <div className="container max-w-6xl mx-auto space-y-8">
 
                     {/* Header */}
-                    <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
+                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 border-b border-white/5 pb-6">
                         <div>
                             <div className="flex items-center gap-3 md:hidden mb-4">
                                 <button onClick={() => router.back()} className="w-9 h-9 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-gray-400">
@@ -172,6 +172,20 @@ function PerformanceEngine() {
                                 Performance Matrix
                             </h1>
                             <p className="text-zinc-400">Complete analysis of your testing history, knowledge retention, and growth trajectory.</p>
+                        </div>
+                        <div className="flex gap-2 p-1 bg-white/5 border border-white/10 rounded-2xl w-full md:w-auto self-start md:self-center shrink-0">
+                            <button
+                                onClick={() => router.push("/performance")}
+                                className="flex-1 md:flex-none px-5 py-2.5 rounded-xl text-sm font-semibold transition-all bg-white/10 text-white shadow-lg border border-white/5"
+                            >
+                                Study Analytics
+                            </button>
+                            <button
+                                onClick={() => router.push("/performance/gpa")}
+                                className="flex-1 md:flex-none px-5 py-2.5 rounded-xl text-sm font-semibold transition-all text-zinc-400 hover:text-white hover:bg-white/5"
+                            >
+                                GPA Simulator
+                            </button>
                         </div>
                     </div>
 

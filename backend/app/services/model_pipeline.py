@@ -26,26 +26,28 @@ from app.services.rag_service import rag_service
 settings = get_settings()
 
 # ─────────────────────────────────────────────────────────────
-# Shared Ollama call parameters
+# Shared Ollama call parameters (Optimized for 100% GPU VRAM & High Output)
 # ─────────────────────────────────────────────────────────────
 _FAST_OPTIONS = {
     "temperature": 0.3,
     "top_k": 40,
     "top_p": 0.9,
-    "num_ctx": 8192,
-    "num_predict": 2048,
-    "num_gpu": 99,
-    "num_thread": 8,
+    "num_ctx": settings.ollama_num_ctx,
+    "num_predict": settings.ollama_num_predict,
+    "num_gpu": settings.ollama_num_gpu,
+    "num_thread": settings.ollama_num_thread,
+    "num_batch": settings.ollama_num_batch,
 }
 
 _REASONING_OPTIONS = {
     "temperature": 0.2,   # Lower for more deterministic analysis
     "top_k": 30,
     "top_p": 0.85,
-    "num_ctx": 16384,     # 16K context for long documents
-    "num_predict": 4096,
-    "num_gpu": 99,
-    "num_thread": 8,
+    "num_ctx": settings.ollama_num_ctx,     # 8K context to fit 100% in GPU VRAM (no CPU offload)
+    "num_predict": settings.ollama_num_predict, # Preserve full output capacity
+    "num_gpu": settings.ollama_num_gpu,
+    "num_thread": settings.ollama_num_thread,
+    "num_batch": settings.ollama_num_batch,
 }
 
 # ─────────────────────────────────────────────────────────────
@@ -139,6 +141,7 @@ class ModelPipelineService:
             "prompt": prompt,
             "system": system,
             "stream": False,
+            "think": settings.ollama_think,  # Disable chain-of-thought for fast inference
             "keep_alive": keep_alive,
             "options": options or _FAST_OPTIONS,
         }

@@ -48,10 +48,22 @@ k8s/
 # Temporary / Logs
 tmp/
 errors.txt
+*.log
+*logs.txt
+*errors*.txt
+*build_output.txt
+test_cache.ts
+
+# Scratch / Uploads
+scratch/
+backend/scratch/
+backend/uploads/
+uploads/
 
 # Internal Documentation
 guidelines.md
 implementation_plan.md
 task.md
 walkthrough.md
+
 

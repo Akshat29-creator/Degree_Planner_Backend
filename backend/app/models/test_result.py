@@ -31,6 +31,12 @@ class TestResult(Base):
     short_count = Column(Integer, default=0)
     long_count = Column(Integer, default=0)
     
+    # Spaced Repetition (SM-2) columns
+    ease_factor = Column(Float, default=2.5)
+    interval = Column(Integer, default=1)
+    repetitions = Column(Integer, default=0)
+    next_review_at = Column(DateTime(timezone=True), nullable=True)
+    
     # Full data payloads
     questions_json = Column(JSON, nullable=True) # The generated test with user answers
     feedback_json = Column(JSON, nullable=True)  # Teacher evaluation with deep analysis showing how to improve

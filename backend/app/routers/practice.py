@@ -5,23 +5,23 @@ MODES:
 - Practice Mode: Questions WITH answers shown immediately.
 - Self-Test Mode: Questions WITHOUT answers, evaluated after submission.
 """
+import json
 from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel, Field
 from typing import List, Optional, Dict, Any
 from uuid import uuid4
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import delete
+
+from app.database import get_db
 from app.services.ollama_service import ollama_service
-
 from app.routers.flags import feature_guard
+from app.utils.cache import redis_client
+from app.models.practice_session import PracticeSession
 
 router = APIRouter(prefix="/practice", tags=["Practice & Self-Test"], dependencies=[Depends(feature_guard("practice"))])
-
-# ============================================
-# In-Memory Answer Store (for Self-Test mode)
-# ============================================
-# Key: session_id, Value: dict of question_id -> correct_answer
-_answer_store: Dict[str, Dict[str, str]] = {}
 
 
 # ============================================
@@ -97,7 +97,7 @@ class EvaluateResponse(BaseModel):
 # ============================================
 
 @router.post("/generate", response_model=GenerateQuestionsResponse)
-async def generate_questions(request: GenerateQuestionsRequest):
+async def generate_questions(request: GenerateQuestionsRequest, db: AsyncSession = Depends(get_db)):
     """
     Generate questions for practice or self-test.
     
@@ -113,6 +113,14 @@ async def generate_questions(request: GenerateQuestionsRequest):
     if request.question_type not in ("mcq", "short", "long"):
         raise HTTPException(status_code=400, detail="question_type must be 'mcq', 'short', or 'long'")
     
+    # Cleanup old sessions older than 24 hours (86400 seconds)
+    try:
+        cutoff = datetime.now(timezone.utc) - timedelta(hours=24)
+        await db.execute(delete(PracticeSession).where(PracticeSession.created_at < cutoff))
+        await db.commit()
+    except Exception as cleanup_err:
+        print(f"PracticeSession cleanup error: {cleanup_err}")
+
     # Generate questions using AI (always include answers for storage)
     raw_questions = await ollama_service.generate_practice_questions(
         topic=request.topic_name,
@@ -150,7 +158,25 @@ async def generate_questions(request: GenerateQuestionsRequest):
     
     # Store answers server-side for self-test mode
     if request.mode == "self-test":
-        _answer_store[session_id] = answer_map
+        if redis_client:
+            try:
+                # Save as JSON string with 1 hour expiration
+                await redis_client.set(f"practice_session:{session_id}", json.dumps(answer_map), ex=3600)
+            except Exception:
+                # Fallback to database on Redis failure
+                try:
+                    db_session = PracticeSession(session_id=session_id, answer_map=answer_map)
+                    db.add(db_session)
+                    await db.commit()
+                except Exception as db_err:
+                    print(f"PracticeSession db save error: {db_err}")
+        else:
+            try:
+                db_session = PracticeSession(session_id=session_id, answer_map=answer_map)
+                db.add(db_session)
+                await db.commit()
+            except Exception as db_err:
+                print(f"PracticeSession db save error: {db_err}")
     
     return GenerateQuestionsResponse(
         session_id=session_id,
@@ -161,7 +187,7 @@ async def generate_questions(request: GenerateQuestionsRequest):
 
 
 @router.post("/evaluate", response_model=EvaluateResponse)
-async def evaluate_answers(request: EvaluateRequest):
+async def evaluate_answers(request: EvaluateRequest, db: AsyncSession = Depends(get_db)):
     """
     Evaluate user-submitted answers and return scores with feedback.
     
@@ -173,7 +199,24 @@ async def evaluate_answers(request: EvaluateRequest):
         raise HTTPException(status_code=400, detail="No answers provided")
     
     # Get stored answers
-    stored_answers = _answer_store.get(request.session_id, {})
+    stored_answers = {}
+    if redis_client:
+        try:
+            cached_answers = await redis_client.get(f"practice_session:{request.session_id}")
+            if cached_answers:
+                stored_answers = json.loads(cached_answers)
+        except Exception:
+            pass
+
+    if not stored_answers:
+        # Fallback to query database
+        try:
+            db_session = await db.get(PracticeSession, request.session_id)
+            if db_session:
+                stored_answers = db_session.answer_map
+        except Exception as db_err:
+            print(f"PracticeSession db load error: {db_err}")
+
     if not stored_answers:
         raise HTTPException(status_code=404, detail="Session not found or expired. Please regenerate questions.")
     
@@ -195,8 +238,18 @@ async def evaluate_answers(request: EvaluateRequest):
     )
     
     # Clean up stored answers
-    if request.session_id in _answer_store:
-        del _answer_store[request.session_id]
+    if redis_client:
+        try:
+            await redis_client.delete(f"practice_session:{request.session_id}")
+        except Exception:
+            pass
+    try:
+        db_session = await db.get(PracticeSession, request.session_id)
+        if db_session:
+            await db.delete(db_session)
+            await db.commit()
+    except Exception as db_err:
+        print(f"PracticeSession db delete error: {db_err}")
     
     return EvaluateResponse(
         total_score=evaluation_result.get("total_score", 0),

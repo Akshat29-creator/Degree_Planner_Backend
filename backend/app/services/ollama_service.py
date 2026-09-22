@@ -26,6 +26,7 @@ MODEL CONTEXT
 • You run locally via Ollama (qwen3:8b-q4_K_M / qwen3:14b-q4_K_M)
 • You operate fully offline
 • You must behave deterministically and consistently
+• Thinking mode is OFF. Do NOT produce <think> tags or internal monologue. Start immediately with the structured output.
 
 You are NOT a chatbot.
 You are NOT motivational.
@@ -286,7 +287,7 @@ class OllamaService:
         system_instruction: str = SYSTEM_PROMPT,
         model: Optional[str] = None,
         force_reasoning: bool = False,
-        think: bool = True,
+        think: Optional[bool] = None,
     ) -> Optional[str]:
         """Make an async call to local Ollama API with model routing."""
         # Route model: explicit override > force_reasoning > intent-based
@@ -295,6 +296,7 @@ class OllamaService:
 
         keep_alive = get_keep_alive(model)
         is_reasoning = model == settings.ollama_reasoning_model
+        use_think = think if think is not None else settings.ollama_think
 
         url = f"{self.base_url}/api/generate"
         payload = {
@@ -302,16 +304,17 @@ class OllamaService:
             "prompt": prompt,
             "system": system_instruction,
             "stream": False,
-            "think": think,  # Pass the thinking flag (True by default)
+            "think": use_think,  # Thinking mode OFF by default for fast direct responses
             "keep_alive": keep_alive,
             "options": {
                 "temperature": 0.2 if is_reasoning else 0.4,
                 "top_k": 30 if is_reasoning else 40,
                 "top_p": 0.85 if is_reasoning else 0.95,
-                "num_ctx": 16384 if is_reasoning else 8192,
-                "num_predict": 4096,
-                "num_gpu": 99,
-                "num_thread": 8,
+                "num_ctx": settings.ollama_num_ctx,
+                "num_predict": settings.ollama_num_predict,
+                "num_gpu": settings.ollama_num_gpu,
+                "num_thread": settings.ollama_num_thread,
+                "num_batch": settings.ollama_num_batch,
             }
         }
         
@@ -1555,12 +1558,19 @@ CRITICAL:
         payload = {
             "model": model,
             "prompt": prompt,
-            "system": system_instruction or "You are a helpful educational assistant.",
+            "system": system_instruction or "You are a helpful educational assistant. Do not output thinking tags.",
             "stream": False,
+            "think": False,
+            "keep_alive": settings.ollama_keep_alive,
             "options": {
                 "temperature": 0.3,
                 "top_k": 40,
                 "top_p": 0.95,
+                "num_ctx": settings.ollama_num_ctx,
+                "num_predict": settings.ollama_num_predict,
+                "num_gpu": settings.ollama_num_gpu,
+                "num_thread": settings.ollama_num_thread,
+                "num_batch": settings.ollama_num_batch,
             }
         }
         

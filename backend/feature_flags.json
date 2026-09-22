@@ -7,6 +7,8 @@
   "history": true,
   "manual_entry": true,
   "practice": true,
+  "performance": true,
+  "assessment": true,
   "page_dashboard": true,
   "page_planner": true,
   "page_advisor": true,
@@ -18,8 +20,8 @@
   "page_graph": true,
   "page_study": true,
   "page_performance": true,
-  "performance": true,
-  "assessment": true,
   "debug_mode": true,
-  "mock_ai_responses": true
+  "mock_ai_responses": true,
+  "transcript_import": true,
+  "gpa_simulator": true
 }

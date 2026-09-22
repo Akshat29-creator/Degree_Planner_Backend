@@ -20,6 +20,7 @@ import {
     Grid3X3,
     ChevronUp,
     X,
+    FileText,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/context/auth-context";
@@ -43,10 +44,12 @@ const moreItems = [
     { href: "/revision",    label: "Revision",    icon: Repeat },
     { href: "/buddy",       label: "Buddy",       icon: Heart },
     { href: "/interview",   label: "Interview",   icon: Mic },
+    { href: "/transcript",  label: "Transcript",  icon: FileText },
     { href: "/history",     label: "History",     icon: Clock },
     { href: "/performance", label: "Analytics",   icon: Grid3X3 },
     { href: "/profile",     label: "Me",          icon: UserCircle },
 ];
+
 
 export function Navbar() {
     const pathname = usePathname();
