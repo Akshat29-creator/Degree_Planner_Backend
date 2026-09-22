@@ -236,7 +236,7 @@ The system routes requests between two models based on task requirements:
 | JSON Output | Native instruction following |
 | Context Window | 8192+ tokens |
 | Reasoning | Strong for educational Q&A |
-| Latency | Sub-30s on RTX 4060 8GB |
+| Latency | Sub-30s on RTX 5060 8GB |
 | Memory | Fits in 8GB VRAM (quantized) |
 | Think Mode | Supports `/think` for extended reasoning |
 
@@ -937,6 +937,13 @@ This software is provided for educational purposes. It is not a substitute for p
 
 ---
 
-**Developed by Akshat Awasthi**
+## 21. Contributors
+
+- **Akshat Awasthi** ([@Akshat29-creator](https://github.com/Akshat29-creator)) - Creator & Lead Maintainer
+- **Harsh Gupta** ([@harshfiu](https://github.com/harshfiu)) - Contributor
+
+---
+
+**Developed by Akshat Awasthi & Harsh Gupta**
 
 For questions or issues, please open a GitHub issue.
